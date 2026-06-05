@@ -1,0 +1,18 @@
+{
+    "name": "bitbot-wonder",
+    "version": "2.0.0",
+    "description": "Wonder blocks for BitBot XL elite line following — PID, sonar fusion, anti-interference, 30+ blocks",
+    "license": "MIT",
+    "dependencies": {
+        "core": "*",
+        "radio": "*",
+        "bitbot": "github:4tronix/BitBot#v2.1.13"
+    },
+    "files": [
+        "README.md",
+        "wonder.ts",
+        "wonderracer.ts"
+    ],
+    "public": true,
+    "preferredEditor": "tsprj"
+}
