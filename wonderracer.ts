@@ -999,8 +999,7 @@ function doSearchPivot(): void {
     basic.pause(LOOP_MS)
 }
 
-
-
+namespace wonderracer {
     export function getLinePosition(): number {
         if (snapLeft == 1 && snapRight == 0) return -100
         if (snapLeft == 0 && snapRight == 1) return 100
@@ -1179,3 +1178,4 @@ function doSearchPivot(): void {
     export function scanSensorsNow(): void { scanAllSensors() }
 }
 
+}
