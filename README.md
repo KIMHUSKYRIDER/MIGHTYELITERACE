@@ -1,4 +1,4 @@
-# BitBot Wonder — MakeCode Extension v2
+# MIGHTY Elite Race — BitBot Wonder Extension v2
 
 Elite autonomous line-following blocks for **BitBot XL** (micro:bit v1.5, 2 line sensors + sonar).
 
@@ -9,13 +9,13 @@ Elite autonomous line-following blocks for **BitBot XL** (micro:bit v1.5, 2 line
 3. **Extensions** → paste in the search box:
 
 ```
-https://github.com/KIMHUSKYRIDER/bitbot-elite
+https://github.com/KIMHUSKYRIDER/MIGHTYELITERACE
 ```
 
 4. Press Enter → wait → click the result
 5. **Wonder** (purple) appears in the toolbox
 
-**One-click link:** [makecode.microbit.org/_pkg/KIMHUSKYRIDER/bitbot-elite](https://makecode.microbit.org/_pkg/KIMHUSKYRIDER/bitbot-elite)
+**One-click link:** [makecode.microbit.org/_pkg/KIMHUSKYRIDER/MIGHTYELITERACE](https://makecode.microbit.org/_pkg/KIMHUSKYRIDER/MIGHTYELITERACE)
 
 ## Quick start (one block)
 
