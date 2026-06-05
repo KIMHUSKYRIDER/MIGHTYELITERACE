@@ -13,17 +13,17 @@ enum WonderTuning {
 
 enum WonderDriveState {
     //% block="stopped"
-    Stopped = 0,
+    WsStopped = 0,
     //% block="following line"
-    FollowLine = 1,
+    WsFollowLine = 1,
     //% block="obstacle stop"
-    ObstacleStop = 2,
+    WsObstacleStop = 2,
     //% block="gap recover"
-    GapRecover = 3,
+    WsGapRecover = 3,
     //% block="line lost"
-    LineLost = 4,
+    WsLineLost = 4,
     //% block="search pivot"
-    SearchPivot = 5,
+    WsSearchPivot = 5,
 }
 
 //% color=#7C3AED weight=96 icon="\uf135" advanced=true
