@@ -13,20 +13,20 @@ let NORMAL_BASE_SPEED = 58
 let MIN_SPEED = 30
 let FAST_BOOST = 12
 let ELITE_SPEED = 82
-const ELITE_STRAIGHT_LOOPS = 14
+let ELITE_STRAIGHT_LOOPS = 14
 const WIDE_LINE_LOOPS = 10
 const CORNER_PREDICT_DERIV = 26
 const CORNER_PREDICT_ERROR = 42
 const CORNER_PREDICT_ACCEL = 14
-const CORNER_BRAKE_MAX = 22
+let CORNER_BRAKE_MAX = 22
 const START_BIAS_MS = 2500
 const START_BIAS_GAIN = 6
 
-const GAP_SPEED = 24
-const SEARCH_SPEED = 16
-const SEARCH_TIMEOUT_MS = 1400
+let GAP_SPEED = 24
+let SEARCH_SPEED = 16
+let SEARCH_TIMEOUT_MS = 1400
 const ARC_SWITCH_MS = 350
-const GAP_RECOVER_MS = 350
+let GAP_RECOVER_MS = 350
 
 // Dual-gain PID: calm on straights, sharper on turns
 let KP_STRAIGHT = 18
@@ -69,7 +69,8 @@ let OBSTACLE_OFF_CM = 18
 const OBSTACLE_HIT_COUNT = 2
 const OBSTACLE_CLEAR_COUNT = 3
 
-const LOST_LIMIT = 12
+let LOST_LIMIT = 12
+let sonarFusionVeto = true
 const STRAIGHT_BOOST_LOOPS = 8
 const ERROR_HISTORY_LEN = 5
 
@@ -650,6 +651,10 @@ function getCornerBrakePercent(): number {
 }
 
 function shouldVetoObstacleHit(): boolean {
+    if (!sonarFusionVeto) {
+        return false
+    }
+
     if (stableLeft != 1 || stableRight != 1) {
         return false
     }
@@ -1081,6 +1086,70 @@ function doSearchPivot(): void {
         }
     }
 
+    export function applyRaceProfile(profile: number): void {
+        applyTuningPreset(1)
+        sonarFusionVeto = true
+        if (profile == 0) {
+            applyTuningPreset(0)
+            OBSTACLE_ON_CM = 15
+            OBSTACLE_OFF_CM = 21
+            GAP_RECOVER_MS = 420
+            SEARCH_TIMEOUT_MS = 1600
+            sonarFusionVeto = true
+        } else if (profile == 1) {
+            applyTuningPreset(2)
+            ELITE_STRAIGHT_LOOPS = 10
+            CORNER_BRAKE_MAX = 18
+            GAP_SPEED = 26
+        } else if (profile == 2) {
+            NORMAL_BASE_SPEED = 54
+            ELITE_SPEED = 76
+            CORNER_BRAKE_MAX = 28
+            KP_TURN = 34
+            KD_TURN = 20
+            GAP_RECOVER_MS = 280
+            LOST_LIMIT = 10
+        } else if (profile == 3) {
+            ELITE_SPEED = 85
+            ELITE_STRAIGHT_LOOPS = 12
+            CORNER_BRAKE_MAX = 24
+            GAP_SPEED = 28
+            SEARCH_SPEED = 18
+        }
+    }
+
+    export function setCornerBrakeMax(pct: number): void {
+        CORNER_BRAKE_MAX = clamp(pct, 0, 40)
+    }
+    export function setGapRecoverMs(ms: number): void {
+        GAP_RECOVER_MS = clamp(ms, 150, 800)
+    }
+    export function setGapSpeed(speed: number): void {
+        GAP_SPEED = clamp(speed, 12, 40)
+    }
+    export function setSearchSpeed(speed: number): void {
+        SEARCH_SPEED = clamp(speed, 10, 30)
+    }
+    export function setSearchTimeoutMs(ms: number): void {
+        SEARCH_TIMEOUT_MS = clamp(ms, 800, 2500)
+    }
+    export function setLostLimit(count: number): void {
+        LOST_LIMIT = clamp(count, 4, 24)
+    }
+    export function setEliteStraightLoops(loops: number): void {
+        ELITE_STRAIGHT_LOOPS = clamp(loops, 6, 24)
+    }
+    export function setSonarFusionVeto(on: boolean): void {
+        sonarFusionVeto = on
+    }
+    export function getRunTimeSec(): number {
+        if (raceStartMs <= 0) return 0
+        return Math.idiv(input.runningTime() - raceStartMs, 1000)
+    }
+    export function isApproachingObstacle(): boolean {
+        return sonarApproaching()
+    }
+
     export function prepareRacer(model: BBModel, dir: BBRobotDirection, bias: number): void {
         raceModel = model
         initAntiInterference()
@@ -1172,6 +1241,13 @@ function doSearchPivot(): void {
         registerInputs()
         startupSequence()
         mainLoop()
+    }
+
+    export function startMightyRacer(profile: number, dir: BBRobotDirection, bias: number): void {
+        raceModel = BBModel.XL
+        applyRaceProfile(profile)
+        countdownSec = 3
+        startEliteRacer(dir, bias)
     }
 
     export function scanSensorsNow(): void { scanAllSensors() }
