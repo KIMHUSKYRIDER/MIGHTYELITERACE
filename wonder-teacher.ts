@@ -17,6 +17,15 @@ namespace wonderteacher {
 
     // ========== START ==========
 
+    //% block="TEACHER DEMO start|balance $dir by $amount"
+    //% group="Start"
+    //% weight=120
+    //% dir.fieldEditor="grid"
+    //% amount.min=0 amount.max=20 amount.defl=5
+    export function startTeacherDemo(dir: BBRobotDirection, amount: number): void {
+        wonderracer.startTeacherDemo(dir, amount)
+    }
+
     //% block="klar for klasserom|balanse $dir med $amount"
     //% group="Start"
     //% weight=110
