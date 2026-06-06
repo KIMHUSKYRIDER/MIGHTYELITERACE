@@ -106,6 +106,25 @@ namespace wonder {
         wonderracer.setMinSpeed(speed)
     }
 
+    //% block="Wonder force speed %speed|0=off use adaptive"
+    //% group="Speed"
+    //% speed.min=0 speed.max=100 speed.defl=0
+    export function forceSpeed(speed: number): void {
+        wonderracer.setSpeedOverride(speed)
+    }
+
+    //% block="Wonder bypass adaptive speed %on"
+    //% group="Speed"
+    export function bypassAdaptiveSpeed(on: boolean): void {
+        wonderracer.setBypassAdaptive(on)
+    }
+
+    //% block="Wonder use normal adaptive speed"
+    //% group="Speed"
+    export function useAdaptiveSpeed(): void {
+        wonderracer.clearSpeedOverride()
+    }
+
     //% block="Wonder set PID straight|Kp %kp|Kd %kd"
     //% group="Speed"
     //% kp.min=5 kp.max=50 kp.defl=18
@@ -238,6 +257,18 @@ namespace wonder {
 
     // ========== SENSORS ==========
 
+    //% block="Wonder sonar instant mode %on"
+    //% group="Sensors"
+    export function sonarInstantMode(on: boolean): void {
+        wonderracer.setSonarFastMode(on)
+    }
+
+    //% block="Wonder read sonar now (cm)"
+    //% group="Sensors"
+    export function sonarNow(): number {
+        return wonderracer.getSonarInstantCm()
+    }
+
     //% block="Wonder scan sensors"
     //% group="Sensors"
     export function scanSensors(): void {
@@ -292,6 +323,30 @@ namespace wonder {
     //% group="Status"
     export function maxSpeed(): number {
         return wonderracer.getMaxSpeed()
+    }
+
+    //% block="Wonder current speed"
+    //% group="Status"
+    export function currentSpeed(): number {
+        return wonderracer.getCurrentSpeed()
+    }
+
+    //% block="Wonder speed override active"
+    //% group="Status"
+    export function speedOverrideActive(): number {
+        return wonderracer.getSpeedOverride()
+    }
+
+    //% block="Wonder bypass adaptive on"
+    //% group="Status"
+    export function bypassAdaptiveOn(): boolean {
+        return wonderracer.isBypassAdaptive()
+    }
+
+    //% block="Wonder show speed on LED"
+    //% group="Status"
+    export function showSpeedOnLed(): void {
+        wonderracer.showSpeedNow()
     }
 
     //% block="Wonder elite mode active"
