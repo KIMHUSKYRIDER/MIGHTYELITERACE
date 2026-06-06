@@ -11,6 +11,17 @@ enum WonderTuning {
     Elite = 2,
 }
 
+enum WonderRaceProfile {
+    //% block="crowded hall"
+    CrowdedHall = 0,
+    //% block="open track (max speed)"
+    OpenTrack = 1,
+    //% block="tight corners"
+    TightCorners = 2,
+    //% block="U18 finals"
+    U18Finals = 3,
+}
+
 enum WonderDriveState {
     //% block="stopped"
     WsStopped = 0,
@@ -26,8 +37,8 @@ enum WonderDriveState {
     WsSearchPivot = 5,
 }
 
-//% color=#7C3AED weight=96 icon="\uf135" advanced=true
-//% groups=["Setup", "Speed", "Obstacles", "Race", "Sensors", "Status"]
+//% color=#7C3AED weight=96 icon="\uf135"
+//% groups=["Setup", "Speed", "Obstacles", "Race", "Advanced", "Sensors", "Status"]
 namespace wonder {
 
     // ========== SETUP ==========
@@ -64,6 +75,12 @@ namespace wonder {
     //% group="Setup"
     export function tuningPreset(preset: WonderTuning): void {
         wonderracer.applyTuningPreset(preset)
+    }
+
+    //% block="Wonder race profile %profile"
+    //% group="Setup"
+    export function raceProfile(profile: WonderRaceProfile): void {
+        wonderracer.applyRaceProfile(profile)
     }
 
     // ========== SPEED ==========
@@ -129,11 +146,25 @@ namespace wonder {
      */
     //% block="Wonder start elite racer|bias $dir by $amount"
     //% group="Race"
+    //% weight=100
     //% dir.fieldEditor="grid"
     //% amount.min=0 amount.max=20 amount.defl=5
     //% blockGap=16
     export function startEliteRacer(dir: BBRobotDirection, amount: number): void {
         wonderracer.startEliteRacer(dir, amount)
+    }
+
+    /**
+     * One block: XL model, race profile, countdown, full autonomous racer.
+     */
+    //% block="Wonder MIGHTY start|profile %profile|bias $dir by $amount"
+    //% group="Race"
+    //% weight=110
+    //% profile.fieldEditor="grid"
+    //% dir.fieldEditor="grid"
+    //% amount.min=0 amount.max=20 amount.defl=5
+    export function startMightyRacer(profile: WonderRaceProfile, dir: BBRobotDirection, amount: number): void {
+        wonderracer.startMightyRacer(profile, dir, amount)
     }
 
     //% block="Wonder emergency stop"
@@ -146,6 +177,63 @@ namespace wonder {
     //% group="Race"
     export function softReset(): void {
         wonderracer.softResetRace()
+    }
+
+    // ========== ADVANCED ==========
+
+    //% block="Wonder set corner brake max %pct"
+    //% group="Advanced"
+    //% pct.min=0 pct.max=40 pct.defl=22
+    export function setCornerBrake(pct: number): void {
+        wonderracer.setCornerBrakeMax(pct)
+    }
+
+    //% block="Wonder set gap recover %ms ms"
+    //% group="Advanced"
+    //% ms.min=150 ms.max=800 ms.defl=350
+    export function setGapRecover(ms: number): void {
+        wonderracer.setGapRecoverMs(ms)
+    }
+
+    //% block="Wonder set gap speed %speed"
+    //% group="Advanced"
+    //% speed.min=12 speed.max=40 speed.defl=24
+    export function setGapSpeed(speed: number): void {
+        wonderracer.setGapSpeed(speed)
+    }
+
+    //% block="Wonder set search speed %speed"
+    //% group="Advanced"
+    //% speed.min=10 speed.max=30 speed.defl=16
+    export function setSearchSpeed(speed: number): void {
+        wonderracer.setSearchSpeed(speed)
+    }
+
+    //% block="Wonder set search timeout %ms ms"
+    //% group="Advanced"
+    //% ms.min=800 ms.max=2500 ms.defl=1400
+    export function setSearchTimeout(ms: number): void {
+        wonderracer.setSearchTimeoutMs(ms)
+    }
+
+    //% block="Wonder set line loss limit %count"
+    //% group="Advanced"
+    //% count.min=4 count.max=24 count.defl=12
+    export function setLineLossLimit(count: number): void {
+        wonderracer.setLostLimit(count)
+    }
+
+    //% block="Wonder set elite straight loops %loops"
+    //% group="Advanced"
+    //% loops.min=6 loops.max=24 loops.defl=14
+    export function setEliteStraightLoops(loops: number): void {
+        wonderracer.setEliteStraightLoops(loops)
+    }
+
+    //% block="Wonder sonar fusion veto %on"
+    //% group="Advanced"
+    export function setSonarFusionVeto(on: boolean): void {
+        wonderracer.setSonarFusionVeto(on)
     }
 
     // ========== SENSORS ==========
@@ -264,5 +352,17 @@ namespace wonder {
     //% group="Status"
     export function lineLosses(): number {
         return wonderracer.getLineLosses()
+    }
+
+    //% block="Wonder run time (sec)"
+    //% group="Status"
+    export function runTimeSec(): number {
+        return wonderracer.getRunTimeSec()
+    }
+
+    //% block="Wonder approaching obstacle"
+    //% group="Status"
+    export function approachingObstacle(): boolean {
+        return wonderracer.isApproachingObstacle()
     }
 }
