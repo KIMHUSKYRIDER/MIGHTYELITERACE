@@ -1,7 +1,7 @@
 {
     "name": "bitbot-wonder",
-    "version": "3.3.0",
-    "description": "Wonder + Teacher blocks for BitBot XL — easy classroom blocks + elite racer",
+    "version": "4.0.0",
+    "description": "Wonder v4 — lap timer, tune presets, classroom wizard, debug tuning, elite racer",
     "license": "MIT",
     "dependencies": {
         "core": "*",
@@ -12,6 +12,7 @@
         "README.md",
         "wonder.ts",
         "wonder-teacher.ts",
+        "wonder-extras.ts",
         "wonderracer.ts"
     ],
     "public": true,
