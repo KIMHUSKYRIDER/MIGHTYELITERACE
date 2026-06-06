@@ -12,12 +12,12 @@ enum WonderPace {
 }
 
 //% color=#0D9488 weight=100 icon="\uf19d"
-//% groups=["Start", "Sonar", "Drive", "Test", "Read", "Lesson"]
+//% groups=["Start", "Sonar", "Drive", "Test", "Read", "Lesson", "Wizard"]
 namespace wonderteacher {
 
     // ========== START ==========
 
-    //% block="classroom ready|balance $dir by $amount"
+    //% block="klar for klasserom|balanse $dir med $amount"
     //% group="Start"
     //% weight=110
     //% dir.fieldEditor="grid"
@@ -26,7 +26,7 @@ namespace wonderteacher {
         wonderracer.classroomReady(dir, amount)
     }
 
-    //% block="start practice line robot|balance $dir by $amount"
+    //% block="start øvelses robot|balanse $dir med $amount"
     //% group="Start"
     //% weight=100
     //% dir.fieldEditor="grid"
@@ -35,7 +35,7 @@ namespace wonderteacher {
         wonderracer.schoolPracticeStart(dir, amount)
     }
 
-    //% block="start race line robot|balance $dir by $amount"
+    //% block="start løp robot|balanse $dir med $amount"
     //% group="Start"
     //% weight=99
     //% dir.fieldEditor="grid"
@@ -44,7 +44,7 @@ namespace wonderteacher {
         wonderracer.schoolRaceStart(dir, amount)
     }
 
-    //% block="easy start|speed %pace|balance $dir by $amount"
+    //% block="enkel start|fart %pace|balanse $dir med $amount"
     //% group="Start"
     //% weight=98
     //% dir.fieldEditor="grid"
@@ -59,13 +59,13 @@ namespace wonderteacher {
         wonderracer.countdownOnly()
     }
 
-    //% block="stop robot"
+    //% block="stopp robot"
     //% group="Start"
     export function stopRobot(): void {
         wonderracer.emergencyStop()
     }
 
-    //% block="reset robot"
+    //% block="nullstill robot"
     //% group="Start"
     export function resetRobot(): void {
         wonderracer.softResetRace()
@@ -293,5 +293,68 @@ namespace wonderteacher {
                 break
             }
         }
+    }
+
+    //% block="leksjon 4 følg linje 30 sek|balanse $dir med $amount"
+    //% group="Lesson"
+    //% dir.fieldEditor="grid"
+    //% amount.min=0 amount.max=20 amount.defl=5
+    export function lesson4Follow30(dir: BBRobotDirection, amount: number): void {
+        wonderracer.lesson4Follow30(dir, amount)
+    }
+
+    //% block="leksjon 5 hinderbane|balanse $dir med $amount"
+    //% group="Lesson"
+    //% dir.fieldEditor="grid"
+    //% amount.min=0 amount.max=20 amount.defl=5
+    export function lesson5ObstacleCourse(dir: BBRobotDirection, amount: number): void {
+        wonderracer.lesson5ObstacleCourse(dir, amount)
+    }
+
+    //% block="leksjon 6 linjelabyrint intro|balanse $dir med $amount"
+    //% group="Lesson"
+    //% dir.fieldEditor="grid"
+    //% amount.min=0 amount.max=20 amount.defl=5
+    export function lesson6LineMaze(dir: BBRobotDirection, amount: number): void {
+        wonderracer.lesson6LineMaze(dir, amount)
+    }
+
+    // ========== WIZARD ==========
+
+    //% block="veiviser oppsett|fart %pace|balanse $dir med $amount"
+    //% group="Wizard"
+    //% dir.fieldEditor="grid"
+    //% amount.min=0 amount.max=20 amount.defl=5
+    export function wizardSetup(pace: WonderPace, dir: BBRobotDirection, amount: number): void {
+        wonderracer.wizardSetup(pace, dir, amount)
+    }
+
+    //% block="mini følg linje steg|fart %speed"
+    //% group="Wizard"
+    //% speed.min=10 speed.max=60 speed.defl=35
+    export function miniFollowStep(speed: number): void {
+        wonderracer.miniFollowStep(speed)
+    }
+
+    //% block="mini følg linje i %ms ms|fart %speed"
+    //% group="Wizard"
+    //% speed.min=10 speed.max=60 speed.defl=35
+    //% ms.min=500 ms.max=120000 ms.defl=10000
+    export function miniFollowFor(speed: number, ms: number): void {
+        wonderracer.runMiniFollowMs(speed, ms)
+    }
+
+    //% block="lytt etter stopp fra lærer|gruppe %group"
+    //% group="Wizard"
+    //% group.min=0 group.max=255 group.defl=73
+    export function listenTeacherStop(group: number): void {
+        wonderracer.listenForClassroomStop(group)
+    }
+
+    //% block="fjernkontroll send stopp|gruppe %group"
+    //% group="Wizard"
+    //% group.min=0 group.max=255 group.defl=73
+    export function remoteSendStop(group: number): void {
+        wonderracer.sendClassroomStopRemote(group)
     }
 }
