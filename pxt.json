@@ -1,6 +1,6 @@
 {
     "name": "bitbot-wonder",
-    "version": "4.0.0",
+    "version": "4.0.1",
     "description": "Wonder v4 — lap timer, tune presets, classroom wizard, debug tuning, elite racer",
     "license": "MIT",
     "dependencies": {
