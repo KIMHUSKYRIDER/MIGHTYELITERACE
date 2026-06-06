@@ -74,6 +74,37 @@ let sonarFusionVeto = true
 let speedOverride = 0
 let bypassAdaptive = false
 let sonarFastMode = false
+let lapStartMs = 0
+let autoBiasLearn = true
+let raceBiasDir = BBRobotDirection.Left
+let raceBiasAmount = 5
+let turboZoneEndMs = 0
+let liveTuneMode = false
+let remoteStopEnabled = false
+let miniFollowKp = 20
+let obstacleScore = 0
+
+let lastRunMaxSpeed = 0
+let lastRunTimeSec = 0
+let lastRunObstacles = 0
+let lastRunLineLosses = 0
+
+let tune0_base = 58
+let tune0_elite = 82
+let tune0_obOn = 14
+let tune0_obOff = 18
+let tune1_base = 58
+let tune1_elite = 82
+let tune1_obOn = 14
+let tune1_obOff = 18
+let tune2_base = 62
+let tune2_elite = 88
+let tune2_obOn = 12
+let tune2_obOff = 16
+let lapLedAuto = false
+let lastLapShown = -1
+let debugDriveLed = false
+let lastStateShown = 0
 const STRAIGHT_BOOST_LOOPS = 8
 const ERROR_HISTORY_LEN = 5
 
@@ -659,6 +690,148 @@ function getStartBiasError(): number {
     return clamp(startLineBias * START_BIAS_GAIN, -20, 20)
 }
 
+function applyLearnedMotorBias(dir: BBRobotDirection, amount: number): void {
+    if (!autoBiasLearn) {
+        bitbot.BBBias(dir, clamp(amount, 0, 20))
+        return
+    }
+    let extra = clamp(Math.abs(startLineBias) * 2, 0, 8)
+    let learnDir = dir
+    if (startLineBias < 0) {
+        learnDir = BBRobotDirection.Left
+    } else if (startLineBias > 0) {
+        learnDir = BBRobotDirection.Right
+    }
+    bitbot.BBBias(learnDir, clamp(amount + extra, 0, 20))
+}
+
+function saveLastRunStats(): void {
+    if (raceStartMs > 0) {
+        lastRunMaxSpeed = maxSpeedReached
+        lastRunTimeSec = Math.idiv(input.runningTime() - raceStartMs, 1000)
+        lastRunObstacles = obstacleCount
+        lastRunLineLosses = lineLosses
+    }
+}
+
+function getLapSeconds(): number {
+    if (lapStartMs <= 0) {
+        return 0
+    }
+    return Math.idiv(input.runningTime() - lapStartMs, 1000)
+}
+
+function displayPostRunReport(): void {
+    basic.showNumber(getLapSeconds())
+    basic.pause(500)
+    basic.showNumber(maxSpeedReached)
+    basic.pause(500)
+    basic.showNumber(obstacleCount)
+    basic.pause(500)
+    basic.showNumber(lineLosses)
+    basic.pause(500)
+}
+
+function showDriveStateLetter(): void {
+    if (state == DriveState.FollowLine) {
+        basic.showString("F")
+    } else if (state == DriveState.ObstacleStop) {
+        basic.showString("O")
+    } else if (state == DriveState.GapRecover) {
+        basic.showString("G")
+    } else if (state == DriveState.LineLost || state == DriveState.SearchPivot) {
+        basic.showString("S")
+    }
+}
+
+function plotConfidenceBar(): void {
+    let row = Math.idiv(confidence, 20)
+    if (row > 4) {
+        row = 4
+    }
+    for (let x = 0; x < 5; x++) {
+        led.plot(x, 4)
+    }
+    for (let y = 0; y <= row; y++) {
+        led.plot(2, 4 - y)
+    }
+}
+
+function copyTuneToSlot(slot: number): void {
+    if (slot == 0) {
+        tune0_base = NORMAL_BASE_SPEED
+        tune0_elite = ELITE_SPEED
+        tune0_obOn = OBSTACLE_ON_CM
+        tune0_obOff = OBSTACLE_OFF_CM
+    } else if (slot == 1) {
+        tune1_base = NORMAL_BASE_SPEED
+        tune1_elite = ELITE_SPEED
+        tune1_obOn = OBSTACLE_ON_CM
+        tune1_obOff = OBSTACLE_OFF_CM
+    } else {
+        tune2_base = NORMAL_BASE_SPEED
+        tune2_elite = ELITE_SPEED
+        tune2_obOn = OBSTACLE_ON_CM
+        tune2_obOff = OBSTACLE_OFF_CM
+    }
+}
+
+function applyTuneFromSlot(slot: number): void {
+    if (slot == 0) {
+        NORMAL_BASE_SPEED = tune0_base
+        ELITE_SPEED = tune0_elite
+        OBSTACLE_ON_CM = tune0_obOn
+        OBSTACLE_OFF_CM = tune0_obOff
+    } else if (slot == 1) {
+        NORMAL_BASE_SPEED = tune1_base
+        ELITE_SPEED = tune1_elite
+        OBSTACLE_ON_CM = tune1_obOn
+        OBSTACLE_OFF_CM = tune1_obOff
+    } else {
+        NORMAL_BASE_SPEED = tune2_base
+        ELITE_SPEED = tune2_elite
+        OBSTACLE_ON_CM = tune2_obOn
+        OBSTACLE_OFF_CM = tune2_obOff
+    }
+}
+
+function miniFollowStepCore(speed: number, reverse: boolean): void {
+    updateLineSensors()
+    let err = computeFusedLineError(stableLeft, stableRight)
+    if (reverse) {
+        err = -err
+    }
+    let corr = miniFollowKp * err / 100
+    let left = clamp(speed + corr, -100, 100)
+    let right = clamp(speed - corr, -100, 100)
+    if (reverse) {
+        driveSmooth(-left, -right, false, false)
+    } else {
+        driveSmooth(left, right, false, false)
+    }
+}
+
+function tickLapLed(): void {
+    if (!lapLedAuto || !running) {
+        return
+    }
+    let sec = getLapSeconds()
+    if (sec != lastLapShown) {
+        lastLapShown = sec
+        basic.showNumber(sec)
+    }
+}
+
+function tickDebugDriveLed(): void {
+    if (!debugDriveLed) {
+        return
+    }
+    if (state != lastStateShown) {
+        lastStateShown = state
+        showDriveStateLetter()
+    }
+}
+
 function isEliteStraight(): boolean {
     return straightCount >= ELITE_STRAIGHT_LOOPS
         && wideLineCount >= WIDE_LINE_LOOPS
@@ -738,6 +911,10 @@ function approachSpeedPercent(distance: number): number {
 }
 
 function getFollowBaseSpeed(distance: number): number {
+    if (input.runningTime() < turboZoneEndMs) {
+        return clamp(ELITE_SPEED, MIN_SPEED, 100)
+    }
+
     if (bypassAdaptive) {
         let fixed = NORMAL_BASE_SPEED
         if (speedOverride > 0) {
@@ -861,6 +1038,7 @@ function tryClearObstacle(): boolean {
     obstacleLatched = false
     obstacleHitStreak = 0
     obstacleClearStreak = 0
+    obstacleScore += 10 + Math.idiv(maxSpeedReached, 5)
 
     music.playTone(988, music.beat(BeatFraction.Eighth))
     basic.showIcon(IconNames.Happy)
@@ -1409,10 +1587,167 @@ function doSearchPivot(): void {
         stopAll()
     }
 
+    export function enableLapTimerLed(on: boolean): void {
+        lapLedAuto = on
+        lastLapShown = -1
+    }
+    export function showLapSecondsOnLed(): void {
+        basic.showNumber(getLapSeconds())
+    }
+    export function resetLapTimer(): void {
+        lapStartMs = input.runningTime()
+        lastLapShown = -1
+    }
+    export function setAutoBiasLearn(on: boolean): void {
+        autoBiasLearn = on
+    }
+    export function getLearnedBias(): number {
+        return startLineBias
+    }
+    export function activateTurboZone(ms: number): void {
+        turboZoneEndMs = input.runningTime() + clamp(ms, 100, 15000)
+    }
+    export function saveTune(slot: number): void {
+        copyTuneToSlot(clamp(slot, 0, 2))
+    }
+    export function loadTune(slot: number): void {
+        applyTuneFromSlot(clamp(slot, 0, 2))
+    }
+    export function saveTuneSlow(): void { saveTune(0) }
+    export function loadTuneSlow(): void { loadTune(0) }
+    export function saveTuneMedium(): void { saveTune(1) }
+    export function loadTuneMedium(): void { loadTune(1) }
+    export function saveTuneRace(): void { saveTune(2) }
+    export function loadTuneRace(): void { loadTune(2) }
+    export function showPostRunReport(): void { displayPostRunReport() }
+    export function getLastRunMaxSpeed(): number { return lastRunMaxSpeed }
+    export function getLastRunTimeSec(): number { return lastRunTimeSec }
+    export function getLastRunObstacles(): number { return lastRunObstacles }
+    export function getLastRunLineLosses(): number { return lastRunLineLosses }
+    export function compareMaxSpeedDelta(): number {
+        return maxSpeedReached - lastRunMaxSpeed
+    }
+    export function showCompareRuns(): void {
+        basic.showString("L")
+        basic.pause(300)
+        basic.showNumber(lastRunMaxSpeed)
+        basic.pause(400)
+        basic.showString("N")
+        basic.pause(300)
+        basic.showNumber(maxSpeedReached)
+    }
+    export function getObstacleScore(): number { return obstacleScore }
+    export function setLiveTuneMode(on: boolean): void { liveTuneMode = on }
+    export function isLiveTuneMode(): boolean { return liveTuneMode }
+    export function setDebugDriveLed(on: boolean): void {
+        debugDriveLed = on
+        lastStateShown = state
+    }
+    export function showDriveStateOnLed(): void { showDriveStateLetter() }
+    export function graphConfidenceOnLed(): void { plotConfidenceBar() }
+    export function setMiniFollowKp(kp: number): void {
+        miniFollowKp = clamp(kp, 5, 50)
+    }
+    export function miniFollowStep(speed: number): void {
+        miniFollowStepCore(speed, false)
+    }
+    export function miniFollowStepReverse(speed: number): void {
+        miniFollowStepCore(speed, true)
+    }
+    export function runMiniFollowMs(speed: number, ms: number): void {
+        bitbot.select_model(BBModel.XL)
+        let end = input.runningTime() + clamp(ms, 100, 120000)
+        while (input.runningTime() < end) {
+            miniFollowStepCore(speed, false)
+            basic.pause(LOOP_MS)
+        }
+        stopAll()
+    }
+    export function runReverseFollowMs(speed: number, ms: number): void {
+        bitbot.select_model(BBModel.XL)
+        let end = input.runningTime() + clamp(ms, 100, 120000)
+        while (input.runningTime() < end) {
+            miniFollowStepCore(speed, true)
+            basic.pause(LOOP_MS)
+        }
+        stopAll()
+    }
+    export function listenForClassroomStop(group: number): void {
+        remoteStopEnabled = true
+        radio.on()
+        radio.setGroup(clamp(group, 0, 255))
+        radio.onReceivedNumber(function (receivedNumber: number) {
+            if (receivedNumber == 99) {
+                emergencyStop()
+            }
+        })
+    }
+    export function sendClassroomStopRemote(group: number): void {
+        radio.on()
+        radio.setGroup(clamp(group, 0, 255))
+        input.onButtonPressed(Button.A, function () {
+            radio.sendNumber(99)
+            basic.showIcon(IconNames.Yes)
+        })
+    }
+    export function wizardSetup(pace: number, dir: BBRobotDirection, bias: number): void {
+        raceModel = BBModel.XL
+        sonarFastMode = true
+        autoBiasLearn = true
+        if (pace == 0) {
+            setRobotSlow()
+        } else if (pace == 2) {
+            setRobotFast()
+        } else {
+            setRobotMedium()
+        }
+        countdownSec = 3
+        startEliteRacer(dir, bias)
+    }
+    export function lesson4Follow30(dir: BBRobotDirection, bias: number): void {
+        classroomReady(dir, bias)
+        setRobotSlow()
+        runMiniFollowMs(38, 30000)
+        basic.showIcon(IconNames.Yes)
+    }
+    export function lesson5ObstacleCourse(dir: BBRobotDirection, bias: number): void {
+        schoolPracticeStart(dir, bias)
+    }
+    export function lesson6LineMaze(dir: BBRobotDirection, bias: number): void {
+        classroomReady(dir, bias)
+        setRobotSlow()
+        miniFollowKp = 16
+        runMiniFollowMs(28, 60000)
+        basic.showIcon(IconNames.Yes)
+    }
+    export function demoFigure8(): void {
+        bitbot.select_model(BBModel.XL)
+        driveStraightTimed(40, 700)
+        turnRightTimed(28, 550)
+        driveStraightTimed(35, 700)
+        turnLeftTimed(28, 550)
+        driveStraightTimed(40, 700)
+        basic.showIcon(IconNames.Heart)
+    }
+    export function demoZigzag(): void {
+        bitbot.select_model(BBModel.XL)
+        let i = 0
+        while (i < 4) {
+            turnLeftTimed(25, 350)
+            driveStraightTimed(35, 500)
+            turnRightTimed(25, 350)
+            driveStraightTimed(35, 500)
+            i++
+        }
+        basic.showIcon(IconNames.Yes)
+    }
+
     export function prepareRacer(model: BBModel, dir: BBRobotDirection, bias: number): void {
         raceModel = model
         initAntiInterference()
         bitbot.select_model(model)
+        raceBiasDir = dir
+        raceBiasAmount = bias
         bitbot.BBBias(dir, clamp(bias, 0, 20))
         primeSonarInstant()
     }
@@ -1433,39 +1768,57 @@ function doSearchPivot(): void {
         lineLossStreak = 0
         resetPid()
         primeSensors()
+        resetLapTimer()
         enterState(DriveState.FollowLine)
         basic.showIcon(IconNames.Yes)
     }
 
     function registerInputs(): void {
         input.onButtonPressed(Button.B, function () {
-            emergencyStop()
+            if (liveTuneMode) {
+                NORMAL_BASE_SPEED = clamp(NORMAL_BASE_SPEED - 2, 20, 90)
+                ELITE_SPEED = clamp(ELITE_SPEED - 2, 30, 100)
+                basic.showNumber(NORMAL_BASE_SPEED)
+                basic.pause(200)
+            } else {
+                emergencyStop()
+            }
         })
         input.onButtonPressed(Button.AB, function () {
             softResetRace()
         })
         input.onButtonPressed(Button.A, function () {
-            if (isEliteStraight()) {
-                basic.showString("E")
-                basic.pause(300)
+            if (liveTuneMode) {
+                NORMAL_BASE_SPEED = clamp(NORMAL_BASE_SPEED + 2, 20, 90)
+                ELITE_SPEED = clamp(ELITE_SPEED + 2, 30, 100)
+                basic.showNumber(NORMAL_BASE_SPEED)
+                basic.pause(200)
+            } else {
+                if (isEliteStraight()) {
+                    basic.showString("E")
+                    basic.pause(300)
+                }
+                basic.showNumber(getCurrentSpeed())
+                basic.pause(400)
+                basic.showNumber(maxSpeedReached)
+                basic.pause(400)
+                basic.showNumber(interferenceLevel)
             }
-            basic.showNumber(getCurrentSpeed())
-            basic.pause(400)
-            basic.showNumber(maxSpeedReached)
-            basic.pause(400)
-            basic.showNumber(interferenceLevel)
         })
         input.onLogoEvent(TouchButtonEvent.Pressed, function () {
-            basic.showNumber(confidence)
+            if (debugDriveLed) {
+                showDriveStateLetter()
+            } else {
+                basic.showNumber(confidence)
+            }
         })
         input.onGesture(Gesture.Shake, function () {
-            basic.showNumber(maxSpeedReached)
-            basic.pause(400)
-            basic.showNumber(obstacleCount)
+            displayPostRunReport()
         })
     }
 
     function startupSequence(): void {
+        startLineBias = 0
         basic.showString("READY")
         basic.pause(300)
         for (let i = countdownSec; i > 0; i--) {
@@ -1477,8 +1830,15 @@ function doSearchPivot(): void {
         }
         basic.showIcon(IconNames.Heart)
         basic.pause(300)
+        applyLearnedMotorBias(raceBiasDir, raceBiasAmount)
         primeSensors()
         raceStartMs = input.runningTime()
+        lapStartMs = raceStartMs
+        lastLapShown = -1
+        maxSpeedReached = 0
+        obstacleCount = 0
+        lineLosses = 0
+        obstacleScore = 0
         enterState(DriveState.FollowLine)
     }
 
@@ -1486,6 +1846,8 @@ function doSearchPivot(): void {
         basic.forever(function () {
             if (!running) { stopAll(); basic.pause(50); return }
             scanAllSensors()
+            tickLapLed()
+            tickDebugDriveLed()
             if (state == DriveState.ObstacleStop) {
                 if (tryClearObstacle()) return
             } else if (!obstacleLatched) {
@@ -1500,6 +1862,9 @@ function doSearchPivot(): void {
     }
 
     export function startEliteRacer(dir: BBRobotDirection, bias: number): void {
+        saveLastRunStats()
+        raceBiasDir = dir
+        raceBiasAmount = bias
         prepareRacer(raceModel, dir, bias)
         registerInputs()
         startupSequence()
