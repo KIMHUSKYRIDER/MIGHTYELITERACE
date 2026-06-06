@@ -79,8 +79,12 @@ let autoBiasLearn = true
 let raceBiasDir = BBRobotDirection.Left
 let raceBiasAmount = 5
 let turboZoneEndMs = 0
+let turboAtRaceMs = -1
+let turboRaceDurationMs = 0
 let liveTuneMode = false
+let practiceSaveOnAb = false
 let remoteStopEnabled = false
+let classroomRadioGroup = RADIO_GROUP_ID
 let miniFollowKp = 20
 let obstacleScore = 0
 
@@ -201,8 +205,26 @@ let errHistIdx = 0
 
 // ---------------- ANTI-INTERFERENCE ----------------
 function initAntiInterference(): void {
-    // Autonomous racer: kill micro:bit radio so other teams' packets cannot affect us.
-    radio.off()
+    // Autonomous racer: kill radio unless teacher remote-stop is enabled.
+    if (!remoteStopEnabled) {
+        radio.off()
+    }
+}
+
+function setupClassroomRadioListen(): void {
+    if (!remoteStopEnabled) {
+        return
+    }
+    radio.on()
+    radio.setGroup(classroomRadioGroup)
+    radio.onReceivedNumber(function (receivedNumber: number) {
+        if (receivedNumber == 99) {
+            running = false
+            enterState(DriveState.Stopped)
+            stopAll()
+            basic.showIcon(IconNames.Skull)
+        }
+    })
 }
 
 function enableRadioForRemoteOnly(): void {
@@ -910,8 +932,21 @@ function approachSpeedPercent(distance: number): number {
     return clamp(pct, 40, 100)
 }
 
-function getFollowBaseSpeed(distance: number): number {
+function isTurboZoneActive(): boolean {
     if (input.runningTime() < turboZoneEndMs) {
+        return true
+    }
+    if (turboAtRaceMs >= 0 && raceStartMs > 0) {
+        let elapsed = input.runningTime() - raceStartMs
+        if (elapsed >= turboAtRaceMs && elapsed < turboAtRaceMs + turboRaceDurationMs) {
+            return true
+        }
+    }
+    return false
+}
+
+function getFollowBaseSpeed(distance: number): number {
+    if (isTurboZoneActive()) {
         return clamp(ELITE_SPEED, MIN_SPEED, 100)
     }
 
@@ -1607,6 +1642,10 @@ function doSearchPivot(): void {
     export function activateTurboZone(ms: number): void {
         turboZoneEndMs = input.runningTime() + clamp(ms, 100, 15000)
     }
+    export function turboZoneAtRaceMs(startAtMs: number, durationMs: number): void {
+        turboAtRaceMs = clamp(startAtMs, 0, 600000)
+        turboRaceDurationMs = clamp(durationMs, 100, 15000)
+    }
     export function saveTune(slot: number): void {
         copyTuneToSlot(clamp(slot, 0, 2))
     }
@@ -1674,13 +1713,8 @@ function doSearchPivot(): void {
     }
     export function listenForClassroomStop(group: number): void {
         remoteStopEnabled = true
-        radio.on()
-        radio.setGroup(clamp(group, 0, 255))
-        radio.onReceivedNumber(function (receivedNumber: number) {
-            if (receivedNumber == 99) {
-                emergencyStop()
-            }
-        })
+        classroomRadioGroup = clamp(group, 0, 255)
+        setupClassroomRadioListen()
     }
     export function sendClassroomStopRemote(group: number): void {
         radio.on()
@@ -1742,9 +1776,47 @@ function doSearchPivot(): void {
         basic.showIcon(IconNames.Yes)
     }
 
+    export function startTeacherDemo(dir: BBRobotDirection, bias: number): void {
+        wizardSetup(0, dir, bias)
+    }
+
+    export function startRacePractice(dir: BBRobotDirection, bias: number): void {
+        practiceSaveOnAb = true
+        liveTuneMode = true
+        autoBiasLearn = true
+        raceModel = BBModel.XL
+        applyRaceProfile(3)
+        countdownSec = 3
+        startEliteRacer(dir, bias)
+    }
+
+    export function startRaceWin(dir: BBRobotDirection, bias: number): void {
+        practiceSaveOnAb = false
+        liveTuneMode = false
+        lapLedAuto = true
+        autoBiasLearn = true
+        raceModel = BBModel.XL
+        applyRaceProfile(3)
+        OBSTACLE_ON_CM = 13
+        OBSTACLE_OFF_CM = 17
+        CORNER_BRAKE_MAX = 24
+        GAP_RECOVER_MS = 280
+        GAP_SPEED = 28
+        SEARCH_SPEED = 18
+        ELITE_STRAIGHT_LOOPS = 10
+        ELITE_SPEED = 85
+        sonarFusionVeto = true
+        countdownSec = 3
+        applyTuneFromSlot(2)
+        turboAtRaceMs = 8000
+        turboRaceDurationMs = 2500
+        startEliteRacer(dir, bias)
+    }
+
     export function prepareRacer(model: BBModel, dir: BBRobotDirection, bias: number): void {
         raceModel = model
         initAntiInterference()
+        setupClassroomRadioListen()
         bitbot.select_model(model)
         raceBiasDir = dir
         raceBiasAmount = bias
@@ -1785,6 +1857,11 @@ function doSearchPivot(): void {
             }
         })
         input.onButtonPressed(Button.AB, function () {
+            if (practiceSaveOnAb) {
+                copyTuneToSlot(2)
+                basic.showString("OK")
+                basic.pause(300)
+            }
             softResetRace()
         })
         input.onButtonPressed(Button.A, function () {
