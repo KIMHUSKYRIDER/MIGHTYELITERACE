@@ -1,7 +1,7 @@
 {
     "name": "bitbot-wonder",
-    "version": "3.0.0",
-    "description": "Wonder blocks for BitBot XL — race profiles, MIGHTY start, advanced tuning, 40+ blocks",
+    "version": "3.3.0",
+    "description": "Wonder + Teacher blocks for BitBot XL — easy classroom blocks + elite racer",
     "license": "MIT",
     "dependencies": {
         "core": "*",
@@ -11,6 +11,7 @@
     "files": [
         "README.md",
         "wonder.ts",
+        "wonder-teacher.ts",
         "wonderracer.ts"
     ],
     "public": true,
