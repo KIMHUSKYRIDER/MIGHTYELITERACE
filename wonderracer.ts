@@ -71,6 +71,9 @@ const OBSTACLE_CLEAR_COUNT = 3
 
 let LOST_LIMIT = 12
 let sonarFusionVeto = true
+let speedOverride = 0
+let bypassAdaptive = false
+let sonarFastMode = false
 const STRAIGHT_BOOST_LOOPS = 8
 const ERROR_HISTORY_LEN = 5
 
@@ -428,7 +431,23 @@ function sonarApproaching(): boolean {
     return sonarTrend0 > sonarTrend1 && sonarTrend1 > sonarTrend2
 }
 
+function readSonarInstantCm(): number {
+    let d = bitbot.sonar(BBPingUnit.Centimeters)
+    if (d > 0 && d <= SONAR_VALID_MAX_CM) {
+        lastSonarCm = d
+        pushSonarBuffer(d)
+        pushSonarTrend(d)
+        sonarQuality = clamp(sonarQuality + 10, 70, 100)
+        sonarInvalidStreak = 0
+    }
+    return lastSonarCm
+}
+
 function readSonarBurstCm(): number {
+    if (sonarFastMode) {
+        return readSonarInstantCm()
+    }
+
     let s0 = 0
     let s1 = 0
     let s2 = 0
@@ -515,11 +534,28 @@ function scanAllSensors(): void {
     snapDistance = readSonarBurstCm()
 }
 
+function primeSonarInstant(): void {
+    sonarBufFill = 0
+    sonarInvalidStreak = 0
+    sonarCrosstalkStreak = 0
+    let i = 0
+    while (i < 5) {
+        readSonarInstantCm()
+        basic.pause(1)
+        i++
+    }
+    snapDistance = lastSonarCm
+}
+
 function primeSensors(): void {
     let i = 0
     while (i < 2) {
         updateLineSensors()
-        readSonarBurstCm()
+        if (sonarFastMode) {
+            readSonarInstantCm()
+        } else {
+            readSonarBurstCm()
+        }
         i++
     }
     snapLeft = stableLeft
@@ -702,6 +738,20 @@ function approachSpeedPercent(distance: number): number {
 }
 
 function getFollowBaseSpeed(distance: number): number {
+    if (bypassAdaptive) {
+        let fixed = NORMAL_BASE_SPEED
+        if (speedOverride > 0) {
+            fixed = speedOverride
+        } else if (isEliteStraight()) {
+            fixed = ELITE_SPEED
+        }
+        return clamp(fixed, MIN_SPEED, 100)
+    }
+
+    if (speedOverride > 0) {
+        return clamp(speedOverride, MIN_SPEED, 100)
+    }
+
     let base = NORMAL_BASE_SPEED
 
     if (isEliteStraight()) {
@@ -726,6 +776,10 @@ function getFollowBaseSpeed(distance: number): number {
 }
 
 function speedForCorrection(correction: number, base: number): number {
+    if (bypassAdaptive || speedOverride > 0) {
+        return base
+    }
+
     let a = Math.abs(correction)
 
     if (a > 50) {
@@ -1149,12 +1203,218 @@ function doSearchPivot(): void {
     export function isApproachingObstacle(): boolean {
         return sonarApproaching()
     }
+    export function getCurrentSpeed(): number {
+        return Math.idiv(Math.abs(currentLeft) + Math.abs(currentRight), 2)
+    }
+    export function getSpeedOverride(): number { return speedOverride }
+    export function isBypassAdaptive(): boolean { return bypassAdaptive }
+
+    export function setSpeedOverride(speed: number): void {
+        speedOverride = clamp(speed, 0, 100)
+    }
+    export function setBypassAdaptive(on: boolean): void {
+        bypassAdaptive = on
+    }
+    export function clearSpeedOverride(): void {
+        speedOverride = 0
+        bypassAdaptive = false
+    }
+    export function showSpeedNow(): void {
+        basic.showNumber(getCurrentSpeed())
+        basic.pause(600)
+        basic.showNumber(maxSpeedReached)
+        basic.pause(600)
+    }
+
+    export function setRobotSlow(): void {
+        applyTuningPreset(0)
+        NORMAL_BASE_SPEED = 42
+        ELITE_SPEED = 52
+        clearSpeedOverride()
+    }
+    export function setRobotMedium(): void {
+        applyTuningPreset(1)
+        clearSpeedOverride()
+    }
+    export function setRobotFast(): void {
+        applyTuningPreset(2)
+        clearSpeedOverride()
+    }
+
+    export function schoolPracticeStart(dir: BBRobotDirection, bias: number): void {
+        raceModel = BBModel.XL
+        sonarFastMode = true
+        setRobotSlow()
+        countdownSec = 3
+        startEliteRacer(dir, bias)
+    }
+    export function schoolRaceStart(dir: BBRobotDirection, bias: number): void {
+        sonarFastMode = false
+        startMightyRacer(3, dir, bias)
+    }
+    export function easyStart(pace: number, dir: BBRobotDirection, bias: number): void {
+        raceModel = BBModel.XL
+        sonarFastMode = true
+        if (pace == 0) {
+            setRobotSlow()
+        } else if (pace == 2) {
+            setRobotFast()
+        } else {
+            setRobotMedium()
+        }
+        countdownSec = 3
+        startEliteRacer(dir, bias)
+    }
+
+    export function testMotorsForward(): void {
+        bitbot.select_model(BBModel.XL)
+        driveSmooth(35, 35, false, false)
+        basic.pause(800)
+        stopAll()
+        basic.showIcon(IconNames.Yes)
+    }
+    export function testLineSensorsShow(): void {
+        let i = 0
+        while (i < 25) {
+            scanAllSensors()
+            if (snapLeft == 1 && snapRight == 1) {
+                basic.showIcon(IconNames.Square)
+            } else if (snapLeft == 1) {
+                basic.showArrow(ArrowNames.West)
+            } else if (snapRight == 1) {
+                basic.showArrow(ArrowNames.East)
+            } else {
+                basic.showIcon(IconNames.Asleep)
+            }
+            basic.pause(200)
+            i++
+        }
+    }
+    export function testSonarShow(): void {
+        sonarFastMode = true
+        primeSonarInstant()
+        let i = 0
+        while (i < 25) {
+            basic.showNumber(getSonarInstantCm())
+            basic.pause(150)
+            i++
+        }
+    }
+    export function setSonarFastMode(on: boolean): void {
+        sonarFastMode = on
+        if (on) {
+            primeSonarInstant()
+        }
+    }
+    export function isSonarFastMode(): boolean { return sonarFastMode }
+    export function getSonarInstantCm(): number {
+        snapDistance = readSonarInstantCm()
+        return snapDistance
+    }
+    export function classroomReady(dir: BBRobotDirection, bias: number): void {
+        prepareRacer(BBModel.XL, dir, bias)
+        sonarFastMode = true
+        primeSonarInstant()
+        updateLineSensors()
+        snapLeft = stableLeft
+        snapRight = stableRight
+        basic.showString("OK")
+        basic.pause(400)
+    }
+    export function isCloserThan(cm: number): boolean {
+        let d = getSonarInstantCm()
+        return d > 0 && d < cm
+    }
+    export function waitCloserThan(cm: number, timeoutMs: number): boolean {
+        let start = input.runningTime()
+        while (input.runningTime() - start < timeoutMs) {
+            if (isCloserThan(cm)) {
+                return true
+            }
+            basic.pause(30)
+        }
+        return false
+    }
+    export function waitForLine(timeoutMs: number): boolean {
+        let start = input.runningTime()
+        while (input.runningTime() - start < timeoutMs) {
+            updateLineSensors()
+            if (lineSeenFast()) {
+                return true
+            }
+            basic.pause(30)
+        }
+        return false
+    }
+    export function showAllSensorsOnce(): void {
+        updateLineSensors()
+        let d = getSonarInstantCm()
+        if (snapLeft == 1 && snapRight == 1) {
+            basic.showIcon(IconNames.Square)
+        } else if (snapLeft == 1) {
+            basic.showArrow(ArrowNames.West)
+        } else if (snapRight == 1) {
+            basic.showArrow(ArrowNames.East)
+        } else {
+            basic.showIcon(IconNames.Asleep)
+        }
+        basic.pause(400)
+        basic.showNumber(d)
+        basic.pause(500)
+    }
+    export function runClassroomTests(): void {
+        testMotorsForward()
+        testLineSensorsShow()
+        testSonarShow()
+    }
+    export function countdownOnly(): void {
+        basic.showString("READY")
+        basic.pause(300)
+        for (let i = countdownSec; i > 0; i--) {
+            basic.showNumber(i)
+            basic.pause(600)
+        }
+        basic.showIcon(IconNames.Heart)
+    }
+    export function driveBackTimed(speed: number, ms: number): void {
+        bitbot.select_model(BBModel.XL)
+        speed = clamp(speed, 10, 60)
+        ms = clamp(ms, 100, 5000)
+        driveSmooth(-speed, -speed, false, false)
+        basic.pause(ms)
+        stopAll()
+    }
+    export function turnLeftTimed(speed: number, ms: number): void {
+        bitbot.select_model(BBModel.XL)
+        speed = clamp(speed, 10, 50)
+        ms = clamp(ms, 100, 3000)
+        driveSmooth(-speed, speed, true, false)
+        basic.pause(ms)
+        stopAll()
+    }
+    export function turnRightTimed(speed: number, ms: number): void {
+        bitbot.select_model(BBModel.XL)
+        speed = clamp(speed, 10, 50)
+        ms = clamp(ms, 100, 3000)
+        driveSmooth(speed, -speed, true, false)
+        basic.pause(ms)
+        stopAll()
+    }
+    export function driveStraightTimed(speed: number, ms: number): void {
+        bitbot.select_model(BBModel.XL)
+        speed = clamp(speed, 10, 80)
+        ms = clamp(ms, 100, 5000)
+        driveSmooth(speed, speed, false, false)
+        basic.pause(ms)
+        stopAll()
+    }
 
     export function prepareRacer(model: BBModel, dir: BBRobotDirection, bias: number): void {
         raceModel = model
         initAntiInterference()
         bitbot.select_model(model)
         bitbot.BBBias(dir, clamp(bias, 0, 20))
+        primeSonarInstant()
     }
 
     export function emergencyStop(): void {
@@ -1185,12 +1445,15 @@ function doSearchPivot(): void {
             softResetRace()
         })
         input.onButtonPressed(Button.A, function () {
-            if (isEliteStraight()) basic.showString("E")
-            else basic.showNumber(interferenceLevel)
-            basic.pause(350)
-            basic.showNumber(sonarQuality)
-            basic.pause(350)
-            basic.showNumber(sensorQuality)
+            if (isEliteStraight()) {
+                basic.showString("E")
+                basic.pause(300)
+            }
+            basic.showNumber(getCurrentSpeed())
+            basic.pause(400)
+            basic.showNumber(maxSpeedReached)
+            basic.pause(400)
+            basic.showNumber(interferenceLevel)
         })
         input.onLogoEvent(TouchButtonEvent.Pressed, function () {
             basic.showNumber(confidence)
