@@ -1,7 +1,7 @@
 {
     "name": "bitbot-wonder",
-    "version": "2.0.0",
-    "description": "Wonder blocks for BitBot XL elite line following — PID, sonar fusion, anti-interference, 30+ blocks",
+    "version": "3.0.0",
+    "description": "Wonder blocks for BitBot XL — race profiles, MIGHTY start, advanced tuning, 40+ blocks",
     "license": "MIT",
     "dependencies": {
         "core": "*",
