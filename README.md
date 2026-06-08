@@ -1,4 +1,4 @@
-# MIGHTYELITERACE — BitBot Wonder
+# MIGHTYELITERACE — BitBot Wonder  ·  v5.0
 
 A MakeCode extension for **BBC micro:bit + 4tronix BitBot XL** that turns
 the racer into an autonomous, competition-ready, classroom-friendly robot
@@ -9,6 +9,20 @@ with one-block start programs.
 > `wonderracer.ts` that runs predictive corner braking, sonar-line fusion,
 > anti-interference and adaptive elite speed.
 
+## What's new in v5.0 — "The Racing Edge"
+
+Features built specifically to **beat the class**:
+
+- **Ghost Lap** — race against your own best lap, arrow up = faster, down = slower
+- **Corner Memory** — drive one slow practice lap, robot learns every corner, then pre-brakes on race lap
+- **Auto-Tune** — robot tests 3 speeds for itself and picks the fastest one that doesn't lose the line
+- **Pre-flight Check** — verifies sonar + both line sensors + motors, gives GO or letter codes (S/L/R) for what's broken
+- **Race Coach** — after the run, tells you what to fix: `BIAS R 4`, `SLOW`, `FASTER`, `PACE OK`
+- **Personal Best** — remembers fastest valid run and top speed across the session
+- **Speedometer** — live speed % on the LED
+- **Boot Banner** — "WONDER v5" intro animation
+- **`WONDER V5` one-block** — pre-flight + race profile + tune + music + corner replay + lap LED in a single block
+
 ---
 
 ## Quick start
@@ -16,25 +30,37 @@ with one-block start programs.
 1. Open [makecode.microbit.org](https://makecode.microbit.org)
 2. **Extensions** → paste this URL:
    `https://github.com/KIMHUSKYRIDER/MIGHTYELITERACE`
-3. **Blocks**: drag **Wonderpro → ULTIMATE racer** under **on start**
+3. **Blocks**: drag **Wonderelite → WONDER V5 ultimate racer** under **on start**
 4. **Download** → flash → put car on the line → wait for 3-2-1 → GO
 
-### One line of code does it all
+### One line of code does it all (v5)
 
 ```typescript
-wonderpro.ultimateRacer(BBRobotDirection.Left, 5)
+wonderelite.ultimateV5(BBRobotDirection.Left, 5)
 ```
 
-This activates: lap timer LED, auto motor-bias learning during 3-2-1,
-U18 race profile, sonar-line fusion, saved tune, scheduled turbo zone
-on the long straight, music, arena scoring.
+This runs pre-flight, then activates: lap timer LED, auto motor-bias learning
+during 3-2-1, U18 race profile, sonar-line fusion, saved tune, scheduled turbo
+zone, music, learned corner pre-braking (if you ran a learn lap first), arena
+scoring.
+
+### Two-stage learn-then-race (the killer combo)
+
+```typescript
+wonderelite.learnThenRace(BBRobotDirection.Left, 5)
+```
+
+Drives one 25-second slow lap memorizing where every corner is, then immediately
+starts the v5 race using those learned corner times to pre-brake. **No one else
+in your class will have this.**
 
 ---
 
-## What's inside (12 categories, ~150 blocks)
+## What's inside (13 categories, ~180 blocks)
 
 | Toolbox | Color | For |
 |---------|-------|-----|
+| **Wonderelite** ⚡ | rose | **v5 racing edge**: Ghost Lap, Corner Memory, Auto-Tune, Pre-flight, Coach, PB |
 | **Wonderpro** | red | One-block ultimate programs (`ultimateRacer`, `loopsChampion`, `decathlon`) |
 | **Wonder** | purple | Elite racer setup, speed, PID, profiles |
 | **Wonderextras** | crimson | Race win, practice + tune, lap timer, turbo zone |
@@ -80,6 +106,32 @@ Features layered on top:
 
 ## Programs for different days
 
+### Race day — v5 winning combo (recommended)
+```typescript
+wonderelite.learnThenRace(BBRobotDirection.Left, 5)
+```
+One block. Runs pre-flight, drives a 25-sec slow learn lap to memorize corners,
+then immediately starts the v5 race using corner pre-braking. Hardest to beat.
+
+### Race day — fast and simple
+```typescript
+wonderelite.ultimateV5(BBRobotDirection.Left, 5)
+```
+Pre-flight + race profile + tune + music + lap LED. No learn lap needed.
+
+### Auto-tune session (figure out best speed for THIS track)
+```typescript
+wonderelite.autoTune(BBRobotDirection.Left, 5)
+```
+Robot tests 3 speeds for 8 sec each, picks the fastest one that didn't lose
+the line, then sets `NORMAL_BASE_SPEED` for the next race.
+
+### Post-race review
+```typescript
+wonderelite.coach()           // BIAS R 4 / SLOW / FASTER / PACE OK
+wonderelite.showPb()          // Personal best time + top speed
+```
+
 ### Teacher demo
 ```typescript
 wonderteacher.startTeacherDemo(BBRobotDirection.Left, 5)
@@ -91,11 +143,6 @@ Slow safe wizard, music on, full 3-2-1.
 wonderpro.loopsChampion(BBRobotDirection.Left, 5)
 ```
 Same `forever` structure they use, but with PID follow + sonar inside.
-
-### Race day
-```typescript
-wonderpro.ultimateRacer(BBRobotDirection.Left, 5)
-```
 
 ### Win the whole class on points
 ```typescript
@@ -124,7 +171,8 @@ wonderpro.decathlon(BBRobotDirection.Left, 5)
 ## File layout
 
 ```
-wonderracer.ts        Engine (~1100 lines, auto-generated from competition source)
+wonderracer.ts        Engine (~1300 lines, auto-generated from competition source)
+wonder-elite.ts       v5 racing edge (Ghost, Corner Memory, Auto-Tune, Coach, PB)
 wonder.ts             Elite racer tuning
 wonder-pro.ts         One-block ultimate programs
 wonder-extras.ts      Race / practice / tune / lap

@@ -1,7 +1,7 @@
 {
     "name": "bitbot-wonder",
-    "version": "4.4.0",
-    "description": "Wonder v4.4 — pro modes, BitBot wrappers, stats, decathlon, full toolbox",
+    "version": "5.0.0",
+    "description": "Wonder v5 — Ghost Lap, Corner Memory, Auto-Tune, Pre-flight, Coach, PB + full v4 toolbox",
     "license": "MIT",
     "dependencies": {
         "core": "*",
@@ -21,6 +21,7 @@
         "wonder-pro.ts",
         "wonder-stats.ts",
         "wonder-control.ts",
+        "wonder-elite.ts",
         "wonderracer.ts"
     ],
     "public": true,

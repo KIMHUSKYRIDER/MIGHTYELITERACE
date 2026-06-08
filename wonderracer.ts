@@ -740,6 +740,7 @@ function saveLastRunStats(): void {
         lastRunTimeSec = Math.idiv(input.runningTime() - raceStartMs, 1000)
         lastRunObstacles = obstacleCount
         lastRunLineLosses = lineLosses
+        updatePersonalBest()
     }
 }
 
@@ -1375,6 +1376,358 @@ function doSearchPivot(): void {
     }
 
     basic.pause(LOOP_MS)
+}
+
+// ---------------- v5 ELITE FEATURES ----------------
+
+let bestLapTimeSec = -1
+let lastLapDeltaSec = 0
+let ghostLapStartMs = 0
+
+const CORNER_MEM_SIZE = 32
+let cornerMemTimes: number[] = []
+let cornerMemRecord = false
+let cornerMemReplay = false
+let lastCornerLogMs = -10000
+let cornerMemSavedOverride = -1
+let cornerMemBrakePct = 65
+
+let preflightLastResult = "?"
+
+let pbRunSec = -1
+let pbMaxSpeed = -1
+
+function ghostLapBegin(): void {
+    ghostLapStartMs = input.runningTime()
+    basic.showString("L")
+    basic.pause(150)
+    basic.clearScreen()
+}
+
+function ghostLapEnd(): void {
+    if (ghostLapStartMs <= 0) {
+        basic.showIcon(IconNames.No)
+        return
+    }
+    let sec = Math.idiv(input.runningTime() - ghostLapStartMs, 1000)
+    if (bestLapTimeSec < 0) {
+        bestLapTimeSec = sec
+        lastLapDeltaSec = 0
+        basic.showString("PB")
+        basic.pause(300)
+        basic.showNumber(sec)
+        basic.pause(400)
+        return
+    }
+    lastLapDeltaSec = sec - bestLapTimeSec
+    if (sec < bestLapTimeSec) {
+        bestLapTimeSec = sec
+        basic.showString("PB")
+        basic.pause(300)
+    }
+    if (lastLapDeltaSec < 0) {
+        basic.showArrow(ArrowNames.North)
+    } else if (lastLapDeltaSec > 0) {
+        basic.showArrow(ArrowNames.South)
+    } else {
+        basic.showIcon(IconNames.Yes)
+    }
+    basic.pause(250)
+    basic.showNumber(sec)
+}
+
+function getBestLapSec(): number { return bestLapTimeSec }
+function getLastLapDeltaSec(): number { return lastLapDeltaSec }
+function clearBestLap(): void {
+    bestLapTimeSec = -1
+    lastLapDeltaSec = 0
+}
+
+function startCornerLearn(): void {
+    cornerMemTimes = []
+    cornerMemRecord = true
+    cornerMemReplay = false
+    lastCornerLogMs = -10000
+    if (lapStartMs <= 0) {
+        lapStartMs = input.runningTime()
+    } else {
+        lapStartMs = input.runningTime()
+    }
+    basic.showString("LRN")
+    basic.pause(200)
+}
+
+function stopCornerLearn(): void {
+    cornerMemRecord = false
+    basic.showString("OK")
+    basic.pause(200)
+    basic.showNumber(cornerMemTimes.length)
+    basic.pause(400)
+}
+
+function enableCornerReplay(on: boolean): void {
+    cornerMemReplay = on
+    if (on) {
+        lapStartMs = input.runningTime()
+    }
+    if (!on && cornerMemSavedOverride != -1) {
+        speedOverride = cornerMemSavedOverride
+        cornerMemSavedOverride = -1
+    }
+}
+
+function clearCornerMemory(): void {
+    cornerMemTimes = []
+    lastCornerLogMs = -10000
+}
+
+function getCornerMemoryCount(): number {
+    return cornerMemTimes.length
+}
+
+function setCornerMemBrakePercent(pct: number): void {
+    cornerMemBrakePct = clamp(pct, 30, 95)
+}
+
+function tickRecordCorners(): void {
+    if (!cornerMemRecord || lapStartMs <= 0) {
+        return
+    }
+    if (state != DriveState.FollowLine) {
+        return
+    }
+    let nowFromLap = input.runningTime() - lapStartMs
+    if (Math.abs(smoothedError) < CORNER_PREDICT_ERROR && Math.abs(lastDerivative) < CORNER_PREDICT_DERIV) {
+        return
+    }
+    if (nowFromLap - lastCornerLogMs < 350) {
+        return
+    }
+    if (cornerMemTimes.length >= CORNER_MEM_SIZE) {
+        return
+    }
+    cornerMemTimes.push(nowFromLap)
+    lastCornerLogMs = nowFromLap
+}
+
+function tickReplayCorners(): void {
+    if (!cornerMemReplay || lapStartMs <= 0) {
+        return
+    }
+    let nowFromLap = input.runningTime() - lapStartMs
+    let braking = false
+    for (let i = 0; i < cornerMemTimes.length; i++) {
+        let t = cornerMemTimes[i]
+        if (nowFromLap > t - 100 && nowFromLap < t + 200) {
+            braking = true
+            break
+        }
+    }
+    if (braking && cornerMemSavedOverride == -1) {
+        cornerMemSavedOverride = speedOverride
+        speedOverride = clamp(Math.idiv(NORMAL_BASE_SPEED * cornerMemBrakePct, 100), 20, 70)
+    } else if (!braking && cornerMemSavedOverride != -1) {
+        speedOverride = cornerMemSavedOverride
+        cornerMemSavedOverride = -1
+    }
+}
+
+function runAutoTune(dir: BBRobotDirection, bias: number): number {
+    classroomReady(dir, bias)
+    setRobotSlow()
+    let speeds = [35, 50, 65]
+    let losses0 = 0
+    let losses1 = 0
+    let losses2 = 0
+    for (let i = 0; i < 3; i++) {
+        basic.showString("T")
+        basic.pause(150)
+        basic.showNumber(i + 1)
+        basic.pause(250)
+        lineLosses = 0
+        let end = input.runningTime() + 8000
+        while (input.runningTime() < end) {
+            miniFollowStepCore(speeds[i], false)
+            basic.pause(LOOP_MS)
+        }
+        stopAll()
+        if (i == 0) {
+            losses0 = lineLosses
+        } else if (i == 1) {
+            losses1 = lineLosses
+        } else {
+            losses2 = lineLosses
+        }
+        basic.pause(700)
+    }
+    let bestIdx = 0
+    let bestLoss = losses0
+    if (losses1 < bestLoss || (losses1 == bestLoss && speeds[1] > speeds[bestIdx])) {
+        bestLoss = losses1
+        bestIdx = 1
+    }
+    if (losses2 < bestLoss || (losses2 == bestLoss && speeds[2] > speeds[bestIdx])) {
+        bestLoss = losses2
+        bestIdx = 2
+    }
+    NORMAL_BASE_SPEED = speeds[bestIdx]
+    ELITE_SPEED = clamp(speeds[bestIdx] + 20, 30, 100)
+    basic.showString("PICK")
+    basic.pause(300)
+    basic.showNumber(speeds[bestIdx])
+    basic.pause(500)
+    return speeds[bestIdx]
+}
+
+function runPreflightCheck(): string {
+    let issues = ""
+    bitbot.select_model(BBModel.XL)
+    primeSonarInstant()
+    updateLineSensors()
+    basic.showString("CHK")
+    basic.pause(300)
+    let d = getSonarInstantCm()
+    if (d <= 0 || d > 200) {
+        issues = issues + "S"
+    }
+    driveSmooth(28, 28, false, false)
+    basic.pause(450)
+    stopAll()
+    let leftScan = false
+    let rightScan = false
+    let t0 = input.runningTime()
+    while (input.runningTime() - t0 < 1500) {
+        updateLineSensors()
+        if (stableLeft == 1) {
+            leftScan = true
+        }
+        if (stableRight == 1) {
+            rightScan = true
+        }
+        basic.pause(80)
+    }
+    if (!leftScan) {
+        issues = issues + "L"
+    }
+    if (!rightScan) {
+        issues = issues + "R"
+    }
+    if (issues.length == 0) {
+        preflightLastResult = "GO"
+        basic.showIcon(IconNames.Yes)
+        basic.pause(400)
+        basic.showString("GO")
+        basic.pause(300)
+    } else {
+        preflightLastResult = issues
+        basic.showIcon(IconNames.No)
+        basic.pause(400)
+        basic.showString(issues)
+        basic.pause(400)
+    }
+    return preflightLastResult
+}
+
+function getPreflightResult(): string {
+    return preflightLastResult
+}
+
+function runRaceCoach(): void {
+    basic.showString("COACH")
+    basic.pause(300)
+    if (startLineBias <= -2) {
+        basic.showString("BIAS R")
+        basic.pause(350)
+        basic.showNumber(Math.abs(startLineBias) * 2)
+        basic.pause(450)
+    } else if (startLineBias >= 2) {
+        basic.showString("BIAS L")
+        basic.pause(350)
+        basic.showNumber(startLineBias * 2)
+        basic.pause(450)
+    } else {
+        basic.showString("BIAS OK")
+        basic.pause(300)
+    }
+    if (lineLosses >= 3) {
+        basic.showString("SLOW")
+        basic.pause(300)
+    } else if (lineLosses == 0 && maxSpeedReached < 75) {
+        basic.showString("FASTER")
+        basic.pause(300)
+    } else {
+        basic.showString("PACE OK")
+        basic.pause(300)
+    }
+    if (obstacleCount >= 2) {
+        basic.showString("OBS+")
+        basic.pause(300)
+        basic.showNumber(obstacleCount)
+        basic.pause(400)
+    }
+    basic.showIcon(IconNames.Heart)
+    basic.pause(300)
+}
+
+function updatePersonalBest(): void {
+    if (raceStartMs <= 0) {
+        return
+    }
+    let sec = Math.idiv(input.runningTime() - raceStartMs, 1000)
+    if (sec > 0 && (pbRunSec < 0 || (sec < pbRunSec && lineLosses < 3))) {
+        pbRunSec = sec
+    }
+    if (maxSpeedReached > pbMaxSpeed) {
+        pbMaxSpeed = maxSpeedReached
+    }
+}
+
+function getPersonalBestSec(): number {
+    return pbRunSec
+}
+
+function getPersonalBestSpeed(): number {
+    return pbMaxSpeed
+}
+
+function clearPersonalBest(): void {
+    pbRunSec = -1
+    pbMaxSpeed = -1
+}
+
+function showPersonalBest(): void {
+    basic.showString("PB T")
+    basic.pause(250)
+    if (pbRunSec >= 0) {
+        basic.showNumber(pbRunSec)
+    } else {
+        basic.showIcon(IconNames.No)
+    }
+    basic.pause(400)
+    basic.showString("PB S")
+    basic.pause(250)
+    if (pbMaxSpeed >= 0) {
+        basic.showNumber(pbMaxSpeed)
+    } else {
+        basic.showIcon(IconNames.No)
+    }
+    basic.pause(400)
+}
+
+function showBootBannerV5(): void {
+    basic.showString("WONDER v5")
+    basic.pause(150)
+    basic.showIcon(IconNames.Heart)
+    basic.pause(300)
+}
+
+function runLiveSpeedometer(seconds: number): void {
+    let end = input.runningTime() + clamp(seconds, 1, 60) * 1000
+    while (input.runningTime() < end) {
+        let s = Math.idiv(Math.abs(currentLeft) + Math.abs(currentRight), 2)
+        basic.showNumber(s)
+        basic.pause(400)
+    }
 }
 
     export function getLinePosition(): number {
@@ -2322,6 +2675,8 @@ function doSearchPivot(): void {
             scanAllSensors()
             tickLapLed()
             tickDebugDriveLed()
+            tickRecordCorners()
+            tickReplayCorners()
             if (state == DriveState.ObstacleStop) {
                 if (tryClearObstacle()) return
             } else if (!obstacleLatched) {
@@ -2353,5 +2708,89 @@ function doSearchPivot(): void {
     }
 
     export function scanSensorsNow(): void { scanAllSensors() }
+
+    // ---------- v5 ELITE: Ghost Lap ----------
+    export function ghostLapStart(): void { ghostLapBegin() }
+    export function ghostLapFinish(): void { ghostLapEnd() }
+    export function getBestLap(): number { return getBestLapSec() }
+    export function getLastLapDelta(): number { return getLastLapDeltaSec() }
+    export function clearGhostLap(): void { clearBestLap() }
+
+    // ---------- v5 ELITE: Corner Memory ----------
+    export function cornerLearnStart(): void { startCornerLearn() }
+    export function cornerLearnStop(): void { stopCornerLearn() }
+    export function cornerReplayOn(): void { enableCornerReplay(true) }
+    export function cornerReplayOff(): void { enableCornerReplay(false) }
+    export function cornerMemoryClear(): void { clearCornerMemory() }
+    export function cornerMemoryCount(): number { return getCornerMemoryCount() }
+    export function cornerBrakeStrength(pct: number): void { setCornerMemBrakePercent(pct) }
+
+    // ---------- v5 ELITE: Auto-Tune ----------
+    export function autoTune(dir: BBRobotDirection, bias: number): number {
+        return runAutoTune(dir, bias)
+    }
+
+    // ---------- v5 ELITE: Pre-flight ----------
+    export function preflight(): string { return runPreflightCheck() }
+    export function preflightResult(): string { return getPreflightResult() }
+    export function preflightOk(): boolean { return getPreflightResult() == "GO" }
+
+    // ---------- v5 ELITE: Race Coach ----------
+    export function coachReview(): void { runRaceCoach() }
+
+    // ---------- v5 ELITE: Personal Best ----------
+    export function pbBestSec(): number { return getPersonalBestSec() }
+    export function pbTopSpeed(): number { return getPersonalBestSpeed() }
+    export function pbShow(): void { showPersonalBest() }
+    export function pbClear(): void { clearPersonalBest() }
+
+    // ---------- v5 ELITE: Polish ----------
+    export function bootBannerV5(): void { showBootBannerV5() }
+    export function speedometerLive(seconds: number): void { runLiveSpeedometer(seconds) }
+
+    // ---------- v5 ELITE: Ultimate one-block ----------
+    export function startWonderV5(dir: BBRobotDirection, bias: number): void {
+        showBootBannerV5()
+        runPreflightCheck()
+        if (getPreflightResult() != "GO") {
+            basic.showString("STOP")
+            basic.pause(400)
+            return
+        }
+        raceMusicOn = true
+        lapLedAuto = true
+        autoBiasLearn = true
+        arenaReportOnShake = false
+        practiceSaveOnAb = false
+        liveTuneMode = false
+        raceModel = BBModel.XL
+        applyRaceProfile(3)
+        OBSTACLE_ON_CM = 13
+        OBSTACLE_OFF_CM = 17
+        CORNER_BRAKE_MAX = 26
+        GAP_RECOVER_MS = 280
+        GAP_SPEED = 28
+        SEARCH_SPEED = 18
+        ELITE_STRAIGHT_LOOPS = 10
+        ELITE_SPEED = 85
+        sonarFusionVeto = true
+        countdownSec = 3
+        applyTuneFromSlot(2)
+        turboAtRaceMs = 8000
+        turboRaceDurationMs = 2500
+        enableCornerReplay(true)
+        startEliteRacer(dir, bias)
+    }
+
+    // ---------- v5 ELITE: Learn-then-race two-stage one-block ----------
+    export function startLearnLap(dir: BBRobotDirection, bias: number): void {
+        classroomReady(dir, bias)
+        setRobotSlow()
+        startCornerLearn()
+        runMiniFollowMs(40, 25000)
+        stopCornerLearn()
+        basic.showString("READY RACE")
+        basic.pause(400)
+    }
 
 }
