@@ -55,19 +55,19 @@ namespace wonderstats {
         return wonderracer.getRunTimeSec()
     }
 
-    //% block="Wonder line losses"
+    //% block="Wonder stats line losses"
     //% group="Dashboard"
     export function lineLosses(): number {
         return wonderracer.getLineLosses()
     }
 
-    //% block="Wonder obstacle count"
+    //% block="Wonder stats obstacle count"
     //% group="Dashboard"
     export function obstacles(): number {
         return wonderracer.getObstacleCount()
     }
 
-    //% block="Wonder confidence"
+    //% block="Wonder stats confidence"
     //% group="Dashboard"
     export function confidence(): number {
         return wonderracer.getConfidence()

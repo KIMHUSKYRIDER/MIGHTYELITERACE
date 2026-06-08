@@ -94,7 +94,7 @@ namespace wonderloops {
         return wonderracer.getSonarInstantCm()
     }
 
-    //% block="stopp robot"
+    //% block="stop loop robot"
     //% group="Read in loop"
     export function stop(): void {
         wonderracer.emergencyStop()

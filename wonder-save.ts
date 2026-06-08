@@ -21,7 +21,7 @@ namespace wondersave {
         wonderracer.savePersistedBest()
     }
 
-    //% block="clear best lap"
+    //% block="reset best lap tracking"
     //% group="Save"
     //% weight=110
     export function clearSaved(): void {
