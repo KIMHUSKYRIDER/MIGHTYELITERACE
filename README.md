@@ -1,8 +1,19 @@
-# MIGHTYELITERACE — BitBot Wonder  ·  v5.0
+# MIGHTYELITERACE — BitBot Wonder  ·  v5.1
 
-A MakeCode extension for **BBC micro:bit + 4tronix BitBot XL** that turns
-the racer into an autonomous, competition-ready, classroom-friendly robot
-with one-block start programs.
+A MakeCode extension for **BBC micro:bit + 4tronix BitBot Classic / XL / PRO**
+that turns the racer into an autonomous, competition-ready,
+classroom-friendly robot with one-block start programs.
+
+## What's new in v5.1 — "Pick your BitBot"
+
+- **All three BitBot models**: Classic, XL, PRO (plus Auto-detect)
+  — engine auto-tunes PID, base speed and elite speed per model
+- **Track-type presets**: short / long / obstacle / time-trial / beginner
+  — each retunes the racer for that style of track in one block
+- **Persistent best lap** — uses micro:bit V2 flash so your PB survives
+  power-off and reset
+- **Auto-celebrate** — animation + Mario-coin / Star Wars / Tetris /
+  Pirates / Final Countdown jingle when you beat your PB
 
 > **Made by Kim** — full source, no AI auto-pilot, no Scratch templates.
 > Every block in `wonder*` is wrapping the elite racer engine in
@@ -56,11 +67,14 @@ in your class will have this.**
 
 ---
 
-## What's inside (13 categories, ~180 blocks)
+## What's inside (16 categories, ~220 blocks)
 
 | Toolbox | Color | For |
 |---------|-------|-----|
-| **Wonderelite** ⚡ | rose | **v5 racing edge**: Ghost Lap, Corner Memory, Auto-Tune, Pre-flight, Coach, PB |
+| **Wonderelite** | rose | v5 racing edge: Ghost Lap, Corner Memory, Auto-Tune, Pre-flight, Coach, PB |
+| **Wondermodels** | emerald | **v5.1**: pick Classic / XL / PRO / Auto + per-model race starters |
+| **Wondertracks** | teal | **v5.1**: short / long / obstacle / time-trial / beginner presets |
+| **Wondersave** | sky blue | **v5.1**: persistent PB + Mario/Tetris/Star Wars/Pirates jingles |
 | **Wonderpro** | red | One-block ultimate programs (`ultimateRacer`, `loopsChampion`, `decathlon`) |
 | **Wonder** | purple | Elite racer setup, speed, PID, profiles |
 | **Wonderextras** | crimson | Race win, practice + tune, lap timer, turbo zone |
@@ -106,12 +120,20 @@ Features layered on top:
 
 ## Programs for different days
 
-### Race day — v5 winning combo (recommended)
+### Race day — v5.1 winning combo (recommended)
+```typescript
+wondersave.enablePersistent()    // PB survives reset
+wondermodels.useXl()             // or useClassic / usePro / useAuto
+wondertracks.longRace(BBRobotDirection.Left, 5)
+```
+PB stored in flash, model auto-tuned, track style applied, race starts. Three blocks.
+
+### Race day — single-block ultimate
 ```typescript
 wonderelite.learnThenRace(BBRobotDirection.Left, 5)
 ```
 One block. Runs pre-flight, drives a 25-sec slow learn lap to memorize corners,
-then immediately starts the v5 race using corner pre-braking. Hardest to beat.
+then immediately starts the v5 race using corner pre-braking.
 
 ### Race day — fast and simple
 ```typescript

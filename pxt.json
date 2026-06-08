@@ -1,11 +1,12 @@
 {
     "name": "bitbot-wonder",
-    "version": "5.0.0",
-    "description": "Wonder v5 — Ghost Lap, Corner Memory, Auto-Tune, Pre-flight, Coach, PB + full v4 toolbox",
+    "version": "5.1.0",
+    "description": "Wonder v5.1 — XL/Classic/PRO support, track presets, persistent PB, ghost lap, corner memory, auto-tune, themes",
     "license": "MIT",
     "dependencies": {
         "core": "*",
         "radio": "*",
+        "settings": "*",
         "bitbot": "github:4tronix/BitBot#v2.1.13"
     },
     "files": [
@@ -22,6 +23,9 @@
         "wonder-stats.ts",
         "wonder-control.ts",
         "wonder-elite.ts",
+        "wonder-models.ts",
+        "wonder-tracks.ts",
+        "wonder-save.ts",
         "wonderracer.ts"
     ],
     "public": true,

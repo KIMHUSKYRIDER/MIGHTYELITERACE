@@ -736,11 +736,16 @@ function applyLearnedMotorBias(dir: BBRobotDirection, amount: number): void {
 
 function saveLastRunStats(): void {
     if (raceStartMs > 0) {
+        let prevPbSec = pbRunSec
+        let prevPbSpeed = pbMaxSpeed
         lastRunMaxSpeed = maxSpeedReached
         lastRunTimeSec = Math.idiv(input.runningTime() - raceStartMs, 1000)
         lastRunObstacles = obstacleCount
         lastRunLineLosses = lineLosses
         updatePersonalBest()
+        if (persistenceEnabled && (pbRunSec != prevPbSec || pbMaxSpeed != prevPbSpeed)) {
+            persistPB()
+        }
     }
 }
 
@@ -1396,6 +1401,123 @@ let preflightLastResult = "?"
 
 let pbRunSec = -1
 let pbMaxSpeed = -1
+
+// v5.1: user-selectable model (XL default, but supports Classic / PRO / Auto)
+let userSelectedModel: BBModel = BBModel.XL
+let modelTuneApplied = false
+
+// v5.1: persistent best-lap storage (survives reset on micro:bit V2)
+const PERSIST_KEY_BEST_LAP = "wonderBestLap"
+const PERSIST_KEY_TOP_SPEED = "wonderTopSpeed"
+let persistenceEnabled = false
+
+function setUserModel(model: BBModel): void {
+    userSelectedModel = model
+    modelTuneApplied = false
+    bitbot.select_model(model)
+}
+
+function applyModelTune(): void {
+    if (modelTuneApplied) {
+        return
+    }
+    modelTuneApplied = true
+    let m = userSelectedModel
+    if (m == BBModel.Classic) {
+        NORMAL_BASE_SPEED = Math.idiv(NORMAL_BASE_SPEED * 75, 100)
+        ELITE_SPEED = Math.idiv(ELITE_SPEED * 75, 100)
+        MIN_SPEED = Math.idiv(MIN_SPEED * 80, 100)
+        KP_STRAIGHT = Math.idiv(KP_STRAIGHT * 85, 100)
+        KP_TURN = Math.idiv(KP_TURN * 85, 100)
+    } else if (m == BBModel.PRO) {
+        NORMAL_BASE_SPEED = Math.idiv(NORMAL_BASE_SPEED * 110, 100)
+        ELITE_SPEED = clamp(Math.idiv(ELITE_SPEED * 110, 100), 30, 100)
+        KP_STRAIGHT = Math.idiv(KP_STRAIGHT * 120, 100)
+        KP_TURN = Math.idiv(KP_TURN * 120, 100)
+        KD_STRAIGHT = Math.idiv(KD_STRAIGHT * 110, 100)
+        KD_TURN = Math.idiv(KD_TURN * 110, 100)
+    }
+}
+
+function getDetectedModelName(): string {
+    let m = bitbot.getModel()
+    if (m == BBModel.Classic) return "CLAS"
+    if (m == BBModel.XL) return "XL"
+    if (m == BBModel.PRO) return "PRO"
+    return "AUTO"
+}
+
+function enablePersistence(): void {
+    persistenceEnabled = true
+    let saved = settings.readNumber(PERSIST_KEY_BEST_LAP)
+    if (saved && saved > 0 && saved < 10000) {
+        pbRunSec = saved
+    }
+    let sv = settings.readNumber(PERSIST_KEY_TOP_SPEED)
+    if (sv && sv > 0 && sv <= 100) {
+        pbMaxSpeed = sv
+    }
+}
+
+function persistPB(): void {
+    if (!persistenceEnabled) {
+        return
+    }
+    if (pbRunSec > 0) {
+        settings.writeNumber(PERSIST_KEY_BEST_LAP, pbRunSec)
+    }
+    if (pbMaxSpeed > 0) {
+        settings.writeNumber(PERSIST_KEY_TOP_SPEED, pbMaxSpeed)
+    }
+}
+
+function clearPersistedPB(): void {
+    pbRunSec = -1
+    pbMaxSpeed = -1
+    if (persistenceEnabled) {
+        settings.writeNumber(PERSIST_KEY_BEST_LAP, 0)
+        settings.writeNumber(PERSIST_KEY_TOP_SPEED, 0)
+    }
+}
+
+// v5.1: famous game/movie melodies (transcribed for buzzer monophonic)
+function playMarioCoin(): void {
+    music.playTone(988, music.beat(BeatFraction.Sixteenth))
+    music.playTone(1319, music.beat(BeatFraction.Quarter))
+}
+
+function playStarWars(): void {
+    music.playMelody("d4 d4 d4 g4 d5 c5 b4 a4 g5 d5 c5 b4 a4 g5", 180)
+}
+
+function playTetris(): void {
+    music.playMelody("e5 b4 c5 d5 c5 b4 a4 a4 c5 e5 d5 c5 b4 c5 d5 e5", 200)
+}
+
+function playPirates(): void {
+    music.playMelody("d4 e4 f4 f4 f4 g4 a4 a4 a4 b4 c5 c5 c5 b4 a4 b4 g4", 180)
+}
+
+function playFinalCountdown(): void {
+    music.playMelody("e5 d5 e5 b4 c5 b4 c5 e5 a4 g4 a4 b4 a4 b4 c5", 200)
+}
+
+function autoCelebrate(): void {
+    basic.showIcon(IconNames.Heart)
+    basic.pause(200)
+    basic.showString("PB!")
+    basic.pause(200)
+    if (raceMusicOn) {
+        playVictoryJingle()
+    }
+    for (let i = 0; i < 3; i++) {
+        led.plot(2, 2)
+        basic.pause(80)
+        basic.clearScreen()
+        basic.pause(80)
+    }
+    basic.showIcon(IconNames.Yes)
+}
 
 function ghostLapBegin(): void {
     ghostLapStartMs = input.runningTime()
@@ -2558,9 +2680,12 @@ function runLiveSpeedometer(seconds: number): void {
 
     export function prepareRacer(model: BBModel, dir: BBRobotDirection, bias: number): void {
         raceModel = model
+        userSelectedModel = model
+        modelTuneApplied = false
         initAntiInterference()
         setupClassroomRadioListen()
         bitbot.select_model(model)
+        applyModelTune()
         raceBiasDir = dir
         raceBiasAmount = bias
         bitbot.BBBias(dir, clamp(bias, 0, 20))
@@ -2791,6 +2916,115 @@ function runLiveSpeedometer(seconds: number): void {
         stopCornerLearn()
         basic.showString("READY RACE")
         basic.pause(400)
+    }
+
+    // ---------- v5.1: Model selection ----------
+    export function useModel(model: BBModel): void {
+        setUserModel(model)
+        applyModelTune()
+    }
+    export function getSelectedModel(): number { return userSelectedModel }
+    export function getDetectedModel(): number { return bitbot.getModel() }
+    export function showDetectedModel(): void {
+        basic.showString(getDetectedModelName())
+    }
+
+    // ---------- v5.1: Per-model one-block starters ----------
+    export function startXl(dir: BBRobotDirection, bias: number): void {
+        setUserModel(BBModel.XL)
+        startWonderV5(dir, bias)
+    }
+    export function startClassic(dir: BBRobotDirection, bias: number): void {
+        setUserModel(BBModel.Classic)
+        applyModelTune()
+        raceMusicOn = true
+        lapLedAuto = true
+        autoBiasLearn = true
+        raceModel = BBModel.Classic
+        applyRaceProfile(0)
+        countdownSec = 3
+        startEliteRacer(dir, bias)
+    }
+    export function startPro(dir: BBRobotDirection, bias: number): void {
+        setUserModel(BBModel.PRO)
+        applyModelTune()
+        raceMusicOn = true
+        lapLedAuto = true
+        autoBiasLearn = true
+        raceModel = BBModel.PRO
+        applyRaceProfile(2)
+        ELITE_SPEED = 90
+        countdownSec = 3
+        startEliteRacer(dir, bias)
+    }
+    export function startAutoModel(dir: BBRobotDirection, bias: number): void {
+        setUserModel(BBModel.Auto)
+        applyModelTune()
+        startWonderV5(dir, bias)
+    }
+
+    // ---------- v5.1: Track-type profiles ----------
+    export function useShortTrack(): void {
+        NORMAL_BASE_SPEED = 45
+        ELITE_SPEED = 60
+        ELITE_STRAIGHT_LOOPS = 18
+        CORNER_BRAKE_MAX = 32
+        KP_TURN = 38
+        GAP_RECOVER_MS = 240
+    }
+    export function useLongTrack(): void {
+        NORMAL_BASE_SPEED = 65
+        ELITE_SPEED = 92
+        ELITE_STRAIGHT_LOOPS = 8
+        CORNER_BRAKE_MAX = 22
+        KP_TURN = 28
+        GAP_RECOVER_MS = 280
+    }
+    export function useObstacleTrack(): void {
+        NORMAL_BASE_SPEED = 48
+        ELITE_SPEED = 68
+        OBSTACLE_ON_CM = 18
+        OBSTACLE_OFF_CM = 24
+        sonarFusionVeto = true
+        sonarFastMode = true
+    }
+    export function useTimeTrialTrack(): void {
+        NORMAL_BASE_SPEED = 70
+        ELITE_SPEED = 95
+        ELITE_STRAIGHT_LOOPS = 7
+        CORNER_BRAKE_MAX = 18
+        OBSTACLE_ON_CM = 10
+        sonarFusionVeto = true
+    }
+    export function useBeginnerTrack(): void {
+        NORMAL_BASE_SPEED = 35
+        ELITE_SPEED = 45
+        MIN_SPEED = 22
+        KP_STRAIGHT = 14
+        KP_TURN = 22
+        CORNER_BRAKE_MAX = 30
+    }
+
+    // ---------- v5.1: Persistent storage ----------
+    export function enablePersistentBest(): void { enablePersistence() }
+    export function savePersistedBest(): void { persistPB() }
+    export function clearPersistedBest(): void { clearPersistedPB() }
+
+    // ---------- v5.1: Extra music ----------
+    export function playMarioCoinJingle(): void { playMarioCoin() }
+    export function playStarWarsJingle(): void { playStarWars() }
+    export function playTetrisJingle(): void { playTetris() }
+    export function playPiratesJingle(): void { playPirates() }
+    export function playFinalCountdownJingle(): void { playFinalCountdown() }
+
+    // ---------- v5.1: Auto-celebrate ----------
+    export function celebratePb(): void { autoCelebrate() }
+    export function celebrateOnPb(): void {
+        let prev = pbRunSec
+        updatePersonalBest()
+        if (pbRunSec < prev || prev < 0) {
+            autoCelebrate()
+        }
     }
 
 }
