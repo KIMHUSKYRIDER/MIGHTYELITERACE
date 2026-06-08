@@ -1,12 +1,11 @@
 {
     "name": "bitbot-wonder",
-    "version": "5.1.0",
-    "description": "Wonder v5.1 — XL/Classic/PRO support, track presets, persistent PB, ghost lap, corner memory, auto-tune, themes",
+    "version": "5.1.1",
+    "description": "Wonder v5.1.1 — XL/Classic/PRO support, track presets, PB tracking, ghost lap, corner memory, auto-tune, themes",
     "license": "MIT",
     "dependencies": {
         "core": "*",
         "radio": "*",
-        "settings": "*",
         "bitbot": "github:4tronix/BitBot#v2.1.13"
     },
     "files": [

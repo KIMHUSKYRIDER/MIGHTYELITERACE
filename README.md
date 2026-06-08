@@ -1,4 +1,4 @@
-# MIGHTYELITERACE — BitBot Wonder  ·  v5.1
+# MIGHTYELITERACE — BitBot Wonder  ·  v5.1.1
 
 A MakeCode extension for **BBC micro:bit + 4tronix BitBot Classic / XL / PRO**
 that turns the racer into an autonomous, competition-ready,
@@ -10,8 +10,7 @@ classroom-friendly robot with one-block start programs.
   — engine auto-tunes PID, base speed and elite speed per model
 - **Track-type presets**: short / long / obstacle / time-trial / beginner
   — each retunes the racer for that style of track in one block
-- **Persistent best lap** — uses micro:bit V2 flash so your PB survives
-  power-off and reset
+- **Best lap tracking** — PB stored while powered on, with celebration when beaten
 - **Auto-celebrate** — animation + Mario-coin / Star Wars / Tetris /
   Pirates / Final Countdown jingle when you beat your PB
 

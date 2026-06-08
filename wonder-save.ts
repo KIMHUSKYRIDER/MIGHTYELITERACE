@@ -1,13 +1,13 @@
 /**
- * Wonder Save v5.1 — persistent best lap that survives power off
- * Uses micro:bit V2 flash settings. On V1 the data is lost on reset.
+ * Wonder Save v5.1.1 — best lap stored in RAM (kept while powered on)
+ * Plus celebration animation + 5 melodies.
  */
 
 //% color=#0369A1 weight=81 icon="\uf0c7"
 //% groups=["Setup", "Save", "Celebrate", "Music"]
 namespace wondersave {
 
-    //% block="enable persistent best lap"
+    //% block="enable best lap tracking"
     //% group="Setup"
     //% weight=120
     export function enablePersistent(): void {
@@ -21,7 +21,7 @@ namespace wondersave {
         wonderracer.savePersistedBest()
     }
 
-    //% block="clear saved best lap forever"
+    //% block="clear best lap"
     //% group="Save"
     //% weight=110
     export function clearSaved(): void {

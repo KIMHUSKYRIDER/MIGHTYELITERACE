@@ -1406,9 +1406,7 @@ let pbMaxSpeed = -1
 let userSelectedModel: BBModel = BBModel.XL
 let modelTuneApplied = false
 
-// v5.1: persistent best-lap storage (survives reset on micro:bit V2)
-const PERSIST_KEY_BEST_LAP = "wonderBestLap"
-const PERSIST_KEY_TOP_SPEED = "wonderTopSpeed"
+// v5.1.1: best-lap kept in RAM only (no settings dep to keep HEX small + V1 compat)
 let persistenceEnabled = false
 
 function setUserModel(model: BBModel): void {
@@ -1449,35 +1447,14 @@ function getDetectedModelName(): string {
 
 function enablePersistence(): void {
     persistenceEnabled = true
-    let saved = settings.readNumber(PERSIST_KEY_BEST_LAP)
-    if (saved && saved > 0 && saved < 10000) {
-        pbRunSec = saved
-    }
-    let sv = settings.readNumber(PERSIST_KEY_TOP_SPEED)
-    if (sv && sv > 0 && sv <= 100) {
-        pbMaxSpeed = sv
-    }
 }
 
 function persistPB(): void {
-    if (!persistenceEnabled) {
-        return
-    }
-    if (pbRunSec > 0) {
-        settings.writeNumber(PERSIST_KEY_BEST_LAP, pbRunSec)
-    }
-    if (pbMaxSpeed > 0) {
-        settings.writeNumber(PERSIST_KEY_TOP_SPEED, pbMaxSpeed)
-    }
 }
 
 function clearPersistedPB(): void {
     pbRunSec = -1
     pbMaxSpeed = -1
-    if (persistenceEnabled) {
-        settings.writeNumber(PERSIST_KEY_BEST_LAP, 0)
-        settings.writeNumber(PERSIST_KEY_TOP_SPEED, 0)
-    }
 }
 
 // v5.1: famous game/movie melodies (transcribed for buzzer monophonic)
