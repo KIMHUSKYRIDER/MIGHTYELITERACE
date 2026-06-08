@@ -163,10 +163,10 @@ namespace wonderled {
         return led.point(x, y)
     }
 
-    //% block="Wonder plot bar %value up to %high"
+    //% block="Wonder plot bar graph %value up to %high"
     //% group="Plot"
-    export function plotBar(value: number, high: number): void {
-        led.plotBar(value, high)
+    export function plotBarGraph(value: number, high: number): void {
+        led.plotBarGraph(value, high)
     }
 
     //% block="Wonder plot brightness %value"
@@ -301,9 +301,11 @@ namespace wondermath {
         return Math.sqrt(n)
     }
 
-    //% block="Wonder map %value|from low %fromLow high %fromHigh|to low %toLow high %toHigh"
-    export function map(value: number, fromLow: number, fromHigh: number, toLow: number, toHigh: number): number {
-        return Math.map(value, fromLow, fromHigh, toLow, toHigh)
+    //% block="Wonder constrain %value between %low and %high"
+    export function constrain(value: number, low: number, high: number): number {
+        if (value < low) return low
+        if (value > high) return high
+        return value
     }
 }
 
