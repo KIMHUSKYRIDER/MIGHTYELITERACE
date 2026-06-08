@@ -137,6 +137,8 @@ export function generateDocs(rootDir) {
 }
 
 if (process.argv[1] && path.basename(process.argv[1]) === 'gen-docs.mjs') {
-    const result = generateDocs(__dirname)
+    const isReleaseLayout = path.basename(__dirname) === 'dev'
+    const rootDir = isReleaseLayout ? path.join(__dirname, '..') : __dirname
+    const result = generateDocs(rootDir)
     console.log(`BLOCKS.md generated: ${result.namespaces} namespaces, ${result.count} blocks`)
 }

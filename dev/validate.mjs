@@ -181,7 +181,10 @@ export function validate(rootDir) {
 }
 
 if (process.argv[1] && path.basename(process.argv[1]) === 'validate.mjs') {
-    const r = validate(__dirname)
+    // Detect layout: if we are in a `dev/` folder, the source files live one level up.
+    const isReleaseLayout = path.basename(__dirname) === 'dev'
+    const rootDir = isReleaseLayout ? path.join(__dirname, '..') : __dirname
+    const r = validate(rootDir)
     console.log(`Validated ${r.blockCount} blocks, ${r.callCount} wonderracer calls`)
     if (r.warnings.length) {
         console.log(`\nWarnings (${r.warnings.length}):`)
