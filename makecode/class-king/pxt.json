@@ -1,0 +1,13 @@
+{
+    "name": "BitBot-Class-King",
+    "description": "Beat the class — points mode (shake for score)",
+    "dependencies": {
+        "core": "*",
+        "radio": "*",
+        "bitbot-wonder": "github:KIMHUSKYRIDER/MIGHTYELITERACE#v4.1.0"
+    },
+    "files": [
+        "main.ts"
+    ],
+    "preferredEditor": "blocks"
+}

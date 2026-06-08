@@ -1,0 +1,28 @@
+{
+    "name": "bitbot-wonder",
+    "version": "4.4.0",
+    "description": "Wonder v4.4 — pro modes, BitBot wrappers, stats, decathlon, full toolbox",
+    "license": "MIT",
+    "dependencies": {
+        "core": "*",
+        "radio": "*",
+        "bitbot": "github:4tronix/BitBot#v2.1.13"
+    },
+    "files": [
+        "README.md",
+        "wonder.ts",
+        "wonder-teacher.ts",
+        "wonder-extras.ts",
+        "wonder-arena.ts",
+        "wonder-music.ts",
+        "wonder-loops.ts",
+        "wonder-builtins.ts",
+        "wonder-bitbot.ts",
+        "wonder-pro.ts",
+        "wonder-stats.ts",
+        "wonder-control.ts",
+        "wonderracer.ts"
+    ],
+    "public": true,
+    "preferredEditor": "tsprj"
+}

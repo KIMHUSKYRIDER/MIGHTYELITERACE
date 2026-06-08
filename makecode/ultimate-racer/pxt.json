@@ -1,0 +1,11 @@
+{
+    "name": "BitBot-Ultimate-Racer",
+    "description": "One block — everything for race day",
+    "dependencies": {
+        "core": "*",
+        "radio": "*",
+        "bitbot-wonder": "github:KIMHUSKYRIDER/MIGHTYELITERACE#v4.4.0"
+    },
+    "files": ["main.ts"],
+    "preferredEditor": "blocks"
+}

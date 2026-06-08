@@ -1,0 +1,13 @@
+{
+    "name": "BitBot-Race-Practice",
+    "description": "Practice + live tune — A+B saves tune for race",
+    "dependencies": {
+        "core": "*",
+        "radio": "*",
+        "bitbot-wonder": "github:KIMHUSKYRIDER/MIGHTYELITERACE#v4.0.1"
+    },
+    "files": [
+        "main.ts"
+    ],
+    "preferredEditor": "blocks"
+}

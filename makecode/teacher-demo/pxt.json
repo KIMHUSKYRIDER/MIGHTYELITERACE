@@ -1,0 +1,13 @@
+{
+    "name": "BitBot-Teacher-Demo",
+    "description": "One line teacher demo — import this project, no paste needed",
+    "dependencies": {
+        "core": "*",
+        "radio": "*",
+        "bitbot-wonder": "github:KIMHUSKYRIDER/MIGHTYELITERACE#v4.0.1"
+    },
+    "files": [
+        "main.ts"
+    ],
+    "preferredEditor": "blocks"
+}

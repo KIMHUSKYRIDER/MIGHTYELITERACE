@@ -1,0 +1,13 @@
+{
+    "name": "BitBot-Race-Win",
+    "description": "Full competition race program — one block",
+    "dependencies": {
+        "core": "*",
+        "radio": "*",
+        "bitbot-wonder": "github:KIMHUSKYRIDER/MIGHTYELITERACE#v4.0.1"
+    },
+    "files": [
+        "main.ts"
+    ],
+    "preferredEditor": "blocks"
+}
