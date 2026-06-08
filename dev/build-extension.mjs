@@ -5,8 +5,16 @@ import { validate } from './validate.mjs'
 import { generateDocs } from './gen-docs.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const root = path.join(__dirname, '..')
-const competitionPath = path.join(root, 'bitbot-xl-competition.ts')
+
+// Detect layout: source repo (pxt-bitbot-wonder/) vs published release (MIGHTYELITERACE/dev/).
+// In release layout the engine source lives next to the script, and the wonder-*.ts
+// block files live one level up at the repo root.
+const isReleaseLayout = path.basename(__dirname) === 'dev'
+const blockSourceDir = isReleaseLayout ? path.join(__dirname, '..') : __dirname
+const competitionPath = isReleaseLayout
+    ? path.join(__dirname, 'bitbot-xl-competition.ts')
+    : path.join(__dirname, '..', 'bitbot-xl-competition.ts')
+// wonder-paste.ts is a dev-only helper that lives next to the script in both layouts.
 const wonderPastePath = path.join(__dirname, 'wonder-paste.ts')
 const marker = '// ---------------- WONDER API (auto-generated — run: node build-extension.mjs) ----------------'
 
@@ -1194,7 +1202,7 @@ const racerApiBody = `
     }
 `
 
-const wonderPaste = fs.readFileSync(wonderPastePath, 'utf8')
+const wonderPaste = fs.existsSync(wonderPastePath) ? fs.readFileSync(wonderPastePath, 'utf8') : ''
 const pasteStart = `
 
 // Start the elite racer (same as Wonder extension block)
@@ -1211,15 +1219,17 @@ ${body}
 ${racerApiBody}
 }
 `
-fs.writeFileSync(path.join(__dirname, 'wonderracer.ts'), wonderracerOut)
+fs.writeFileSync(path.join(blockSourceDir, 'wonderracer.ts'), wonderracerOut)
 
 // Paste file: core at top level + one wonderracer namespace + wonder wrappers + start
 const competitionOut = `${body}\n\n${marker}\n\nnamespace wonderracer {${racerApiBody}\n}\n\n${wonderPaste.trim()}${pasteStart}`
 fs.writeFileSync(competitionPath, competitionOut)
 
 // Sync release folder
-const releaseDir = path.join(root, 'MIGHTYELITERACE')
-if (fs.existsSync(releaseDir)) {
+// In source layout: sync to ../MIGHTYELITERACE release folder.
+// In release layout: nothing to sync — we're already at the release folder.
+const releaseDir = isReleaseLayout ? null : path.join(__dirname, '..', 'MIGHTYELITERACE')
+if (releaseDir && fs.existsSync(releaseDir)) {
     fs.copyFileSync(path.join(__dirname, 'wonder.ts'), path.join(releaseDir, 'wonder.ts'))
     fs.copyFileSync(path.join(__dirname, 'wonder-teacher.ts'), path.join(releaseDir, 'wonder-teacher.ts'))
     fs.copyFileSync(path.join(__dirname, 'wonder-extras.ts'), path.join(releaseDir, 'wonder-extras.ts'))
@@ -1258,7 +1268,10 @@ if (fs.existsSync(releaseDir)) {
     if (fs.existsSync(competitionPath)) {
         fs.copyFileSync(competitionPath, path.join(devDir, 'bitbot-xl-competition.ts'))
     }
-    const makecodeSrc = path.join(root, 'makecode')
+    if (fs.existsSync(wonderPastePath)) {
+        fs.copyFileSync(wonderPastePath, path.join(devDir, 'wonder-paste.ts'))
+    }
+    const makecodeSrc = path.join(blockSourceDir, '..', 'makecode')
     const makecodeDst = path.join(releaseDir, 'makecode')
     if (fs.existsSync(makecodeSrc)) {
         fs.mkdirSync(makecodeDst, { recursive: true })
@@ -1277,7 +1290,7 @@ console.log('Wrote wonderracer.ts', wonderracerOut.length, 'chars')
 console.log('Updated bitbot-xl-competition.ts with Wonder API', competitionOut.length, 'chars')
 
 // ---------- VALIDATE ----------
-const valResult = validate(__dirname)
+const valResult = validate(blockSourceDir)
 console.log(`\nValidator: checked ${valResult.blockCount} blocks, ${valResult.callCount} wonderracer calls`)
 if (valResult.warnings.length) {
     console.log(`  ${valResult.warnings.length} warning(s):`)
@@ -1292,8 +1305,8 @@ if (valResult.errors.length) {
 console.log('  All validation checks passed.')
 
 // ---------- GEN DOCS ----------
-const docResult = generateDocs(__dirname)
+const docResult = generateDocs(blockSourceDir)
 console.log(`\nBLOCKS.md regenerated: ${docResult.namespaces} namespaces, ${docResult.count} blocks`)
-if (fs.existsSync(releaseDir) && fs.existsSync(docResult.path)) {
+if (releaseDir && fs.existsSync(releaseDir) && fs.existsSync(docResult.path)) {
     fs.copyFileSync(docResult.path, path.join(releaseDir, 'BLOCKS.md'))
 }

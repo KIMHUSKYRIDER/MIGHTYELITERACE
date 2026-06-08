@@ -6,6 +6,14 @@ Versioning: `MAJOR.MINOR.PATCH` where MAJOR is a feature era, MINOR adds blocks/
 
 ---
 
+## v5.2.2 — Dev tools work in any clone
+- **Build script now dual-layout aware**: works from both `pxt-bitbot-wonder/` (source dev) and `MIGHTYELITERACE/dev/` (published release clone)
+- Fixed: `node dev/build-extension.mjs` now reads `bitbot-xl-competition.ts` from `dev/` (where it actually lives) instead of root
+- Fixed: validate.mjs and gen-docs.mjs now receive the correct source dir (repo root, not the script's own dir)
+- Fixed: `wonder-paste.ts` now ships in `dev/` so the build script can find it from a fresh clone
+- Verified by simulating a fresh clone + running `node dev/build-extension.mjs` end-to-end
+- Tagged as GitHub Release for the first time
+
 ## v5.2.1 — Open source
 - Added [`LICENSE`](LICENSE) (MIT) — free to use, modify, redistribute
 - Added [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to add new Wonder blocks

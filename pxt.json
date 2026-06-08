@@ -1,7 +1,7 @@
 {
     "name": "bitbot-wonder",
-    "version": "5.2.1",
-    "description": "Wonder v5.2.1 — open-source MIT. Auto-docs + validation + dev tools. XL/Classic/PRO, track presets, ghost lap, corner memory, auto-tune.",
+    "version": "5.2.2",
+    "description": "Wonder v5.2.2 — open-source MIT. Auto-docs + validation + dev tools that work in any clone. XL/Classic/PRO, track presets, ghost lap, corner memory, auto-tune.",
     "license": "MIT",
     "dependencies": {
         "core": "*",
