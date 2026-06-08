@@ -6,6 +6,19 @@ Versioning: `MAJOR.MINOR.PATCH` where MAJOR is a feature era, MINOR adds blocks/
 
 ---
 
+## v5.3.2 — Double-validated CI (sister-project audit)
+- Added `dev/makecode-doctor.mjs` — generic MakeCode-extension auditor vendored from sister project [Codex.dex](https://github.com/KIMHUSKYRIDER/Codex.dex) (MIT)
+- CI now runs **two** validators on every push:
+  - `validate.mjs` (our internal deep checks: 308 blocks, 182 racer-call refs, forbidden patterns)
+  - `makecode-doctor.mjs` (Codex's generic checks: manifest, duplicate labels, dev-script paths)
+- Both reported 0 issues against this repo on first run — proving our pipeline is rock-solid
+- Credit and any upstream improvements to Codex.dex go to its original author
+- Healthy open-source neighborliness: we use their tool, they have ours to compete with
+
+## v5.3.1 — CI hotfix
+- Fixed `validate.mjs` and `gen-docs.mjs` standalone-mode path detection (they used wrong dir when run from `dev/`)
+- CI run #1 caught this exact bug — the validator works
+
 ## v5.3.0 — GitHub Actions CI
 - Added `.github/workflows/build.yml` — auto-runs on every push and pull request
 - CI runs the full build pipeline (regenerate `wonderracer.ts` + validate 308 blocks + regenerate `BLOCKS.md`)

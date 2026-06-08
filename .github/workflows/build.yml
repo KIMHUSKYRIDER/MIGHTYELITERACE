@@ -36,10 +36,14 @@ jobs:
           fi
           echo "All generated files (wonderracer.ts, BLOCKS.md, bitbot-xl-competition.ts) are in sync."
 
-      - name: Standalone validator run (extra safety)
+      - name: Standalone validator run (our internal deep checks)
         run: node dev/validate.mjs
+
+      - name: MakeCode Doctor (generic auditor from sister project Codex.dex)
+        run: node dev/makecode-doctor.mjs .
 
       - name: Report success
         run: |
           BLOCK_COUNT=$(grep -c '^- \*\*' BLOCKS.md || echo 0)
           echo "Build green. ${BLOCK_COUNT} blocks documented in BLOCKS.md."
+          echo "Double-validated: internal validate.mjs + generic makecode-doctor.mjs."

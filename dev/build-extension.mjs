@@ -1265,6 +1265,9 @@ if (releaseDir && fs.existsSync(releaseDir)) {
     fs.copyFileSync(path.join(__dirname, 'build-extension.mjs'), path.join(devDir, 'build-extension.mjs'))
     fs.copyFileSync(path.join(__dirname, 'validate.mjs'), path.join(devDir, 'validate.mjs'))
     fs.copyFileSync(path.join(__dirname, 'gen-docs.mjs'), path.join(devDir, 'gen-docs.mjs'))
+    if (fs.existsSync(path.join(__dirname, 'makecode-doctor.mjs'))) {
+        fs.copyFileSync(path.join(__dirname, 'makecode-doctor.mjs'), path.join(devDir, 'makecode-doctor.mjs'))
+    }
     if (fs.existsSync(competitionPath)) {
         fs.copyFileSync(competitionPath, path.join(devDir, 'bitbot-xl-competition.ts'))
     }
