@@ -169,11 +169,11 @@ namespace wonderled {
         led.plotBarGraph(value, high)
     }
 
-    //% block="Wonder plot brightness %value"
+    //% block="Wonder set LED brightness %value"
     //% group="Plot"
     //% value.min=0 value.max=255 value.defl=128
-    export function plotBrightness(value: number): void {
-        led.plotBrightness(value)
+    export function setBrightness(value: number): void {
+        led.setBrightness(value)
     }
 
     //% block="Wonder LED enable %on"

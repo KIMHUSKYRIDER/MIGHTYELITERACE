@@ -1,7 +1,7 @@
 {
     "name": "bitbot-wonder",
-    "version": "5.1.1",
-    "description": "Wonder v5.1.1 — XL/Classic/PRO support, track presets, PB tracking, ghost lap, corner memory, auto-tune, themes",
+    "version": "5.1.2",
+    "description": "Wonder v5.1.2 — XL/Classic/PRO support, track presets, PB tracking, ghost lap, corner memory, auto-tune, themes",
     "license": "MIT",
     "dependencies": {
         "core": "*",
