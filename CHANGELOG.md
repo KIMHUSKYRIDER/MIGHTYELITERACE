@@ -6,6 +6,13 @@ Versioning: `MAJOR.MINOR.PATCH` where MAJOR is a feature era, MINOR adds blocks/
 
 ---
 
+## v5.3.0 — GitHub Actions CI
+- Added `.github/workflows/build.yml` — auto-runs on every push and pull request
+- CI runs the full build pipeline (regenerate `wonderracer.ts` + validate 308 blocks + regenerate `BLOCKS.md`)
+- CI **fails the build** if generated files are out of sync (catches developers who forgot to rebuild before committing)
+- Green ✅ "Build & Validate" badge now on the README
+- Build script now also syncs `.github/` workflows to the release folder
+
 ## v5.2.2 — Dev tools work in any clone
 - **Build script now dual-layout aware**: works from both `pxt-bitbot-wonder/` (source dev) and `MIGHTYELITERACE/dev/` (published release clone)
 - Fixed: `node dev/build-extension.mjs` now reads `bitbot-xl-competition.ts` from `dev/` (where it actually lives) instead of root

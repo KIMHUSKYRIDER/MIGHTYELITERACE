@@ -1271,6 +1271,21 @@ if (releaseDir && fs.existsSync(releaseDir)) {
     if (fs.existsSync(wonderPastePath)) {
         fs.copyFileSync(wonderPastePath, path.join(devDir, 'wonder-paste.ts'))
     }
+    // Sync GitHub Actions workflows
+    const ghSrcDir = path.join(blockSourceDir, '.github')
+    if (fs.existsSync(ghSrcDir)) {
+        const ghDstDir = path.join(releaseDir, '.github')
+        const copyRecursive = (src, dst) => {
+            if (!fs.existsSync(dst)) fs.mkdirSync(dst, { recursive: true })
+            for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+                const s = path.join(src, entry.name)
+                const d = path.join(dst, entry.name)
+                if (entry.isDirectory()) copyRecursive(s, d)
+                else fs.copyFileSync(s, d)
+            }
+        }
+        copyRecursive(ghSrcDir, ghDstDir)
+    }
     const makecodeSrc = path.join(blockSourceDir, '..', 'makecode')
     const makecodeDst = path.join(releaseDir, 'makecode')
     if (fs.existsSync(makecodeSrc)) {

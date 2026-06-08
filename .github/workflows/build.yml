@@ -1,0 +1,45 @@
+name: Build & Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-validate:
+    runs-on: ubuntu-latest
+    name: Validate blocks + verify generated files
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Show source layout
+        run: ls -la && echo "---" && ls -la dev/
+
+      - name: Run build pipeline (validate + gen-docs + regenerate wonderracer.ts)
+        run: node dev/build-extension.mjs
+
+      - name: Fail if generated files are stale
+        run: |
+          if ! git diff --exit-code; then
+            echo "::error::Generated files are out of sync. Run 'node dev/build-extension.mjs' locally and commit the result."
+            git diff --stat
+            exit 1
+          fi
+          echo "All generated files (wonderracer.ts, BLOCKS.md, bitbot-xl-competition.ts) are in sync."
+
+      - name: Standalone validator run (extra safety)
+        run: node dev/validate.mjs
+
+      - name: Report success
+        run: |
+          BLOCK_COUNT=$(grep -c '^- \*\*' BLOCKS.md || echo 0)
+          echo "Build green. ${BLOCK_COUNT} blocks documented in BLOCKS.md."
