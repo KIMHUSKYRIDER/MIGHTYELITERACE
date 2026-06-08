@@ -1,8 +1,17 @@
-# MIGHTYELITERACE — BitBot Wonder  ·  v5.1.1
+# MIGHTYELITERACE — BitBot Wonder
 
-A MakeCode extension for **BBC micro:bit + 4tronix BitBot Classic / XL / PRO**
-that turns the racer into an autonomous, competition-ready,
-classroom-friendly robot with one-block start programs.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-5.2.0-blue.svg)](CHANGELOG.md)
+[![Blocks](https://img.shields.io/badge/blocks-283-green.svg)](BLOCKS.md)
+[![MakeCode](https://img.shields.io/badge/MakeCode-micro%3Abit-purple.svg)](https://makecode.microbit.org/)
+[![BitBot](https://img.shields.io/badge/BitBot-Classic%20%7C%20XL%20%7C%20PRO-red.svg)](https://4tronix.co.uk/bitbot/)
+
+**Open-source MakeCode extension** for **BBC micro:bit + 4tronix BitBot
+Classic / XL / PRO** that turns the racer into an autonomous,
+competition-ready, classroom-friendly robot with one-block start programs.
+
+**Free to use, modify, and share** under the MIT license — see [LICENSE](LICENSE).
+Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What's new in v5.1 — "Pick your BitBot"
 
@@ -18,6 +27,35 @@ classroom-friendly robot with one-block start programs.
 > Every block in `wonder*` is wrapping the elite racer engine in
 > `wonderracer.ts` that runs predictive corner braking, sonar-line fusion,
 > anti-interference and adaptive elite speed.
+
+## Install (students / teachers)
+
+1. Go to https://makecode.microbit.org
+2. **New Project**
+3. **Advanced → Extensions** (gear icon → Extensions if you don't see it)
+4. Paste this URL in the search box and press Enter:
+
+```
+https://github.com/KIMHUSKYRIDER/MIGHTYELITERACE
+```
+
+5. Click the `bitbot-wonder` card
+6. New categories appear in the toolbox: **Wonder, Wonderelite, Wondermodels,
+   Wondertracks, Wondersave, Wonderteacher** … 21 in total
+
+## Develop (extend or fork)
+
+Want to add your own block? See [CONTRIBUTING.md](CONTRIBUTING.md). Quick start:
+
+```bash
+git clone https://github.com/KIMHUSKYRIDER/MIGHTYELITERACE.git
+cd MIGHTYELITERACE
+node dev/build-extension.mjs    # regen wonderracer.ts + validate + gen docs
+```
+
+The build refuses to commit if validation fails — so you find errors
+before they reach MakeCode. Full API reference: [BLOCKS.md](BLOCKS.md).
+Version history: [CHANGELOG.md](CHANGELOG.md).
 
 ## What's new in v5.0 — "The Racing Edge"
 

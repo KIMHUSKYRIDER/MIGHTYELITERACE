@@ -6,6 +6,12 @@ Versioning: `MAJOR.MINOR.PATCH` where MAJOR is a feature era, MINOR adds blocks/
 
 ---
 
+## v5.2.1 — Open source
+- Added [`LICENSE`](LICENSE) (MIT) — free to use, modify, redistribute
+- Added [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to add new Wonder blocks
+- Release folder now includes `dev/` with `build-extension.mjs`, `validate.mjs`, `gen-docs.mjs`, and the source `bitbot-xl-competition.ts` so anyone can fork & build
+- README badges + open-source signaling + clear install / develop sections
+
 ## v5.2.0 — Documentation & validation
 - Added auto-generated `BLOCKS.md` reference (regenerated on every build)
 - Added `validate.mjs` build-time sanity checker:
