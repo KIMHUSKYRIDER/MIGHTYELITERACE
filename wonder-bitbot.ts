@@ -2,7 +2,7 @@
  * Wonder BitBot — BitBot blocks with Wonder labels (no raw bitbot namespace)
  */
 
-//% color=#0891B2 weight=89 icon="\uf544"
+//% color=#0891B2 weight=89 icon="\uf1b9"
 //% groups=["Setup", "Drive", "Sensors"]
 namespace wonderbitbot {
 

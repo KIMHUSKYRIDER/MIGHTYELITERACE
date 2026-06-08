@@ -2,7 +2,7 @@
  * Wonder Loops (løkker) — beat classmates' forever loops with smarter steps
  */
 
-//% color=#2563EB weight=91 icon="\uf2f1"
+//% color=#2563EB weight=91 icon="\uf01e"
 //% groups=["Setup", "Loop body", "Read in loop"]
 namespace wonderloops {
 
