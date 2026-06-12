@@ -2,12 +2,12 @@
 
 _Auto-generated from `wonder-*.ts` source files. Do not edit by hand — run `node build-extension.mjs` to regenerate._
 
-**21 namespaces · 283 blocks**
+**21 namespaces · 285 blocks**
 
 ## Table of contents
 
 - [wonder](#wonder) (54 blocks)
-- [wonderteacher](#wonderteacher) (46 blocks)
+- [wonderteacher](#wonderteacher) (48 blocks)
 - [wonderextras](#wonderextras) (26 blocks)
 - [wonderarena](#wonderarena) (9 blocks)
 - [wondermusic](#wondermusic) (6 blocks)
@@ -135,6 +135,8 @@ _From `wonder-teacher.ts`_
 
 - **sonar instant mode on** — `wonderteacher.sonarInstantOn()`
 - **sonar instant mode off** — `wonderteacher.sonarInstantOff()`
+- **disable obstacle stop (line only)** — `wonderteacher.disableObstacleStop()`
+- **enable obstacle stop** — `wonderteacher.enableObstacleStop()`
 - **read distance now (cm)** — `wonderteacher.distanceNow()` → `number`
 - **object closer than %cm cm** — `wonderteacher.closerThan(cm: number)` → `boolean`
 - **wait until closer than %cm cm|timeout %ms ms** — `wonderteacher.waitUntilCloser(cm: number, ms: number)` → `boolean`

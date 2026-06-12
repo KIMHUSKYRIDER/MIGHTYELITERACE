@@ -59,7 +59,8 @@ const SONAR_MIN_PING_INTERVAL_MS = 32
 // Readings below this are usually floor echo when the bot tilts forward while driving.
 const SONAR_MIN_TRUST_CM = 8
 const SONAR_FLOOR_DROP_CM = 22
-const OBSTACLE_ARM_MS = 1500
+const OBSTACLE_BASELINE_MARGIN_CM = 7
+const OBSTACLE_ARM_MS = 2000
 const SONAR_HIT_COUNT_NOISY = 3
 const SONAR_CLEAR_COUNT_NOISY = 4
 const SONAR_QUALITY_MIN_HIT = 55
@@ -162,6 +163,9 @@ let obstacleHitStreak = 0
 let obstacleClearStreak = 0
 let obstacleCount = 0
 let obstacleArmedMs = 0
+let sonarFloorBaselineCm = 50
+let sonarBaselineReady = false
+let obstacleStopEnabled = true
 
 let gapRecoverStartMs = 0
 let searchStartMs = 0
@@ -508,6 +512,78 @@ function armObstacleDetection(): void {
     obstacleLatched = false
 }
 
+function calibrateSonarBaseline(): void {
+    let r0 = 0
+    let r1 = 0
+    let r2 = 0
+    let count = 0
+    let savedFast = sonarFastMode
+    sonarFastMode = true
+    lastSonarPingMs = 0
+    let i = 0
+    while (i < 5) {
+        let d = pingSonarRawCm(true)
+        if (d > SONAR_MIN_TRUST_CM && d <= SONAR_VALID_MAX_CM) {
+            if (count == 0) {
+                r0 = d
+            } else if (count == 1) {
+                r1 = d
+            } else {
+                r2 = d
+            }
+            count++
+        }
+        basic.pause(SONAR_MIN_PING_INTERVAL_MS)
+        i++
+    }
+    sonarFastMode = savedFast
+    if (count >= 3) {
+        sonarFloorBaselineCm = median3(r0, r1, r2)
+        sonarBaselineReady = true
+    } else if (count == 2) {
+        sonarFloorBaselineCm = Math.idiv(r0 + r1, 2)
+        sonarBaselineReady = true
+    } else if (lastSonarCm > SONAR_MIN_TRUST_CM) {
+        sonarFloorBaselineCm = lastSonarCm
+        sonarBaselineReady = true
+    } else {
+        sonarFloorBaselineCm = 50
+        sonarBaselineReady = false
+    }
+}
+
+function isObstacleHitDistance(distance: number): boolean {
+    if (!obstacleStopEnabled) {
+        return false
+    }
+    if (distance <= 0 || distance < SONAR_MIN_TRUST_CM) {
+        return false
+    }
+    if (isSonarFloorGlitch(distance, lastSonarCm)) {
+        return false
+    }
+
+    let hitThreshold = OBSTACLE_ON_CM
+    if (sonarApproaching() && sonarQuality >= 60) {
+        hitThreshold += 2
+    }
+
+    if (!sonarBaselineReady) {
+        return distance < hitThreshold
+    }
+
+    // Low baseline = sonar sees the floor when still; only stop on a real approach
+    if (sonarFloorBaselineCm < 20) {
+        return sonarApproaching() && sonarQuality >= 55 && distance < hitThreshold
+    }
+
+    let dynamicHit = sonarFloorBaselineCm - OBSTACLE_BASELINE_MARGIN_CM
+    if (dynamicHit < SONAR_MIN_TRUST_CM + 2) {
+        dynamicHit = SONAR_MIN_TRUST_CM + 2
+    }
+    return distance < dynamicHit && distance < hitThreshold + 3
+}
+
 function acceptSonarSample(d: number): boolean {
     if (isSonarFloorGlitch(d, lastSonarCm)) {
         return false
@@ -686,6 +762,7 @@ function primeSonarInstant(): void {
         i++
     }
     snapDistance = lastSonarCm
+    calibrateSonarBaseline()
 }
 
 function primeSensors(): void {
@@ -1079,6 +1156,16 @@ function shouldVetoObstacleHit(): boolean {
         return false
     }
 
+    // On line: steady low sonar at start is floor echo, not a wall
+    if (stableLeft == 1 && stableRight == 1) {
+        if (!sonarApproaching() && snapDistance > 0 && snapDistance < OBSTACLE_ON_CM + 6) {
+            return true
+        }
+        if (sonarBaselineReady && snapDistance <= sonarFloorBaselineCm + 2 && !sonarApproaching()) {
+            return true
+        }
+    }
+
     if (stableLeft != 1 || stableRight != 1) {
         return false
     }
@@ -1223,7 +1310,7 @@ function tryDetectObstacle(): boolean {
         minQuality = 65
     }
 
-    if (distance > 0 && distance < hitThreshold && sonarQuality >= minQuality) {
+    if (isObstacleHitDistance(distance) && sonarQuality >= minQuality) {
         if (shouldVetoObstacleHit()) {
             obstacleHitStreak = 0
         } else {
@@ -1254,14 +1341,22 @@ function tryDetectObstacle(): boolean {
 function tryClearObstacle(): boolean {
     stopAll()
 
-    let distance = snapDistance
+    if (shouldVetoObstacleHit()) {
+        obstacleLatched = false
+        obstacleHitStreak = 0
+        obstacleClearStreak = 0
+        resetPid()
+        enterState(DriveState.FollowLine)
+        return true
+    }
 
+    let distance = snapDistance
     let minQuality = SONAR_QUALITY_MIN_CLEAR
     if (isNoisySonar()) {
         minQuality = 70
     }
 
-    if (distance >= OBSTACLE_OFF_CM && sonarQuality >= minQuality) {
+    if (!isObstacleHitDistance(distance) && distance > 0 && sonarQuality >= minQuality) {
         obstacleClearStreak++
     } else {
         obstacleClearStreak = 0
@@ -2758,6 +2853,10 @@ function runLiveSpeedometer(seconds: number): void {
         raceBiasAmount = bias
         bitbot.BBBias(dir, clamp(bias, 0, 20))
         primeSonarInstant()
+    }
+
+    export function setObstacleStopEnabled(on: boolean): void {
+        obstacleStopEnabled = on
     }
 
     export function emergencyStop(): void {

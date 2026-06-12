@@ -1,6 +1,6 @@
 {
     "name": "bitbot-wonder",
-    "version": "5.3.4",
+    "version": "5.3.5",
     "description": "Wonder v5.3.4 — sonar floor-glitch filter + obstacle arm delay. Auto-docs + validation + dev tools. XL/Classic/PRO, track presets, ghost lap, corner memory, auto-tune.",
     "license": "MIT",
     "dependencies": {

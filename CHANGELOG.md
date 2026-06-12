@@ -6,6 +6,14 @@ Versioning: `MAJOR.MINOR.PATCH` where MAJOR is a feature era, MINOR adds blocks/
 
 ---
 
+## v5.3.5 — Sonar floor baseline (fixes stuck X on drive)
+- Root cause: sonar reads ~12cm to the **floor** when still; old logic treated that as a wall, then could not clear (floor never goes above 18cm)
+- Calibrates `sonarFloorBaseline` at startup — only stops when something gets **meaningfully closer** than the floor reading
+- Low baseline (<20cm): requires **approaching trend** before stop (real wall, not floor)
+- On-line veto now works from **first loop** (not after straightCount >= 4)
+- False stops auto-release in `tryClearObstacle` instead of stuck X forever
+- New blocks: `disable obstacle stop (line only)` / `enable obstacle stop` in Wonder Teacher
+
 ## v5.3.4 — False obstacle stop fix (X icon on start)
 - Fixed robot driving briefly then stopping with X — sonar was seeing the **floor** as an obstacle when the bot tilted forward
 - Added `SONAR_MIN_TRUST_CM` (8cm): readings below this are ignored as floor echo

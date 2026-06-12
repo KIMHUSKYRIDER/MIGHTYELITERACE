@@ -102,6 +102,18 @@ namespace wonderteacher {
         wonderracer.setSonarFastMode(false)
     }
 
+    //% block="disable obstacle stop (line only)"
+    //% group="Sonar"
+    export function disableObstacleStop(): void {
+        wonderracer.setObstacleStopEnabled(false)
+    }
+
+    //% block="enable obstacle stop"
+    //% group="Sonar"
+    export function enableObstacleStop(): void {
+        wonderracer.setObstacleStopEnabled(true)
+    }
+
     //% block="read distance now (cm)"
     //% group="Sonar"
     export function distanceNow(): number {

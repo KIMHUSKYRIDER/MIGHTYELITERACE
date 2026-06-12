@@ -866,6 +866,10 @@ const racerApiBody = `
         primeSonarInstant()
     }
 
+    export function setObstacleStopEnabled(on: boolean): void {
+        obstacleStopEnabled = on
+    }
+
     export function emergencyStop(): void {
         running = false
         enterState(DriveState.Stopped)
