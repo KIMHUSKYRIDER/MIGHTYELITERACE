@@ -1,7 +1,7 @@
 {
     "name": "bitbot-wonder",
-    "version": "5.3.2",
-    "description": "Wonder v5.3.2 — double-validated in CI. Auto-docs + validation + dev tools. XL/Classic/PRO, track presets, ghost lap, corner memory, auto-tune.",
+    "version": "5.3.3",
+    "description": "Wonder v5.3.3 — sonar stability fix (30ms ping interval). Auto-docs + validation + dev tools. XL/Classic/PRO, track presets, ghost lap, corner memory, auto-tune.",
     "license": "MIT",
     "dependencies": {
         "core": "*",

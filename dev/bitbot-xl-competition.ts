@@ -49,7 +49,9 @@ const SONAR_BURST_AGREE_CM = 6
 const SONAR_VALID_MAX_CM = 120
 const SONAR_TREND_SAMPLES = 3
 const SONAR_STAGGER_MAX_MS = 9
-const SONAR_PING_GAP_MS = 5
+// HC-SR04-style sonar needs ~30ms between pings; faster polling causes false "disconnects".
+const SONAR_PING_GAP_MS = 32
+const SONAR_MIN_PING_INTERVAL_MS = 32
 const SONAR_HIT_COUNT_NOISY = 3
 const SONAR_CLEAR_COUNT_NOISY = 4
 const SONAR_QUALITY_MIN_HIT = 55
@@ -188,6 +190,7 @@ let sonarTrend1 = 0
 let sonarTrend2 = 0
 let sonarTrendFill = 0
 let lastSonarCm = 0
+let lastSonarPingMs = 0
 let sonarQuality = 100
 let sonarInvalidStreak = 0
 let sonarCrosstalkStreak = 0
@@ -458,6 +461,33 @@ function sonarOutlier(sample: number, reference: number): boolean {
     return sample > reference + SONAR_MAX_JUMP_CM
 }
 
+function ensureSonarModel(): void {
+    bitbot.select_model(raceModel)
+}
+
+function pingSonarRawCm(force: boolean): number {
+    let now = input.runningTime()
+    if (!force && now - lastSonarPingMs < SONAR_MIN_PING_INTERVAL_MS) {
+        return -1
+    }
+    ensureSonarModel()
+    lastSonarPingMs = now
+    return bitbot.sonar(BBPingUnit.Centimeters)
+}
+
+function acceptSonarSample(d: number): boolean {
+    if (d > 0 && d <= SONAR_VALID_MAX_CM) {
+        lastSonarCm = d
+        pushSonarBuffer(d)
+        pushSonarTrend(d)
+        sonarQuality = clamp(sonarQuality + 8, 50, 100)
+        sonarInvalidStreak = 0
+        sonarCrosstalkStreak = 0
+        return true
+    }
+    return false
+}
+
 function pushSonarBuffer(cm: number): void {
     if (sonarBufFill == 0) {
         sonarBuf0 = cm
@@ -488,13 +518,12 @@ function sonarApproaching(): boolean {
 }
 
 function readSonarInstantCm(): number {
-    let d = bitbot.sonar(BBPingUnit.Centimeters)
-    if (d > 0 && d <= SONAR_VALID_MAX_CM) {
-        lastSonarCm = d
-        pushSonarBuffer(d)
-        pushSonarTrend(d)
-        sonarQuality = clamp(sonarQuality + 10, 70, 100)
-        sonarInvalidStreak = 0
+    let d = pingSonarRawCm(false)
+    if (d < 0) {
+        return lastSonarCm
+    }
+    if (!acceptSonarSample(d)) {
+        sonarInvalidStreak++
     }
     return lastSonarCm
 }
@@ -502,6 +531,11 @@ function readSonarInstantCm(): number {
 function readSonarBurstCm(): number {
     if (sonarFastMode) {
         return readSonarInstantCm()
+    }
+
+    let now = input.runningTime()
+    if (now - lastSonarPingMs < SONAR_MIN_PING_INTERVAL_MS) {
+        return lastSonarCm
     }
 
     let s0 = 0
@@ -518,7 +552,7 @@ function readSonarBurstCm(): number {
     }
 
     while (i < SONAR_BURST_SAMPLES) {
-        let d = bitbot.sonar(BBPingUnit.Centimeters)
+        let d = pingSonarRawCm(true)
 
         if (d > 0 && d <= SONAR_VALID_MAX_CM) {
             if (!sonarOutlier(d, ref)) {
@@ -533,14 +567,28 @@ function readSonarBurstCm(): number {
             }
         }
 
-        basic.pause(SONAR_PING_GAP_MS)
+        if (i + 1 < SONAR_BURST_SAMPLES) {
+            basic.pause(SONAR_PING_GAP_MS)
+        }
         i++
     }
 
     if (valid == 0) {
+        basic.pause(SONAR_MIN_PING_INTERVAL_MS)
+        let fallback = pingSonarRawCm(true)
+        if (fallback > 0 && fallback <= SONAR_VALID_MAX_CM && !sonarOutlier(fallback, ref)) {
+            pushSonarBuffer(fallback)
+            pushSonarTrend(fallback)
+            lastSonarCm = fallback
+            sonarQuality = clamp(sonarQuality + 5, 45, 100)
+            markInterference(sonarQuality)
+            return fallback
+        }
         sonarInvalidStreak++
-        sonarCrosstalkStreak++
-        sonarQuality = clamp(sonarQuality - 15, 10, 100)
+        if (sonarInvalidStreak > 1) {
+            sonarCrosstalkStreak++
+        }
+        sonarQuality = clamp(sonarQuality - 8, 20, 100)
         markInterference(sonarQuality)
         return lastSonarCm
     }
@@ -594,10 +642,11 @@ function primeSonarInstant(): void {
     sonarBufFill = 0
     sonarInvalidStreak = 0
     sonarCrosstalkStreak = 0
+    lastSonarPingMs = 0
     let i = 0
-    while (i < 5) {
+    while (i < 4) {
         readSonarInstantCm()
-        basic.pause(1)
+        basic.pause(SONAR_MIN_PING_INTERVAL_MS)
         i++
     }
     snapDistance = lastSonarCm
@@ -1676,7 +1725,7 @@ function runAutoTune(dir: BBRobotDirection, bias: number): number {
 
 function runPreflightCheck(): string {
     let issues = ""
-    bitbot.select_model(BBModel.XL)
+    ensureSonarModel()
     primeSonarInstant()
     updateLineSensors()
     basic.showString("CHK")

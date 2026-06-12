@@ -6,6 +6,15 @@ Versioning: `MAJOR.MINOR.PATCH` where MAJOR is a feature era, MINOR adds blocks/
 
 ---
 
+## v5.3.3 — Sonar connect/disconnect fix
+- Fixed sonar readings that worked briefly then dropped out during racing
+- Root cause: ultrasonic sensor was pinged every 5ms in a 10ms loop — hardware needs ~30ms between pings
+- Added `SONAR_MIN_PING_INTERVAL_MS` (32ms) and centralized `pingSonarRawCm()` throttle
+- Burst mode now waits between pings, falls back to a single delayed read if burst fails, and does not punish quality when throttled
+- `primeSonarInstant()` now spaces warm-up pings correctly
+- `bitbotSonarCm()` no longer forces XL model on every read — uses selected `raceModel` via shared sonar path
+- Pre-flight sonar check uses selected model instead of hardcoded XL
+
 ## v5.3.2 — Double-validated CI (sister-project audit)
 - Added `dev/makecode-doctor.mjs` — generic MakeCode-extension auditor vendored from sister project [Codex.dex](https://github.com/KIMHUSKYRIDER/Codex.dex) (MIT)
 - CI now runs **two** validators on every push:
