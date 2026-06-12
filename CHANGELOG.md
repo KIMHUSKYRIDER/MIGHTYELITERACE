@@ -6,6 +6,13 @@ Versioning: `MAJOR.MINOR.PATCH` where MAJOR is a feature era, MINOR adds blocks/
 
 ---
 
+## v5.3.4 — False obstacle stop fix (X icon on start)
+- Fixed robot driving briefly then stopping with X — sonar was seeing the **floor** as an obstacle when the bot tilted forward
+- Added `SONAR_MIN_TRUST_CM` (8cm): readings below this are ignored as floor echo
+- Added floor-glitch filter: sudden drops (e.g. 40cm → 10cm in one ping) are rejected
+- Added 1.5s obstacle arm delay after setup so sonar stabilizes before stop logic runs
+- `isCloserThan()` uses the same filters — lesson 3 and sonar tests no longer false-stop
+
 ## v5.3.3 — Sonar connect/disconnect fix
 - Fixed sonar readings that worked briefly then dropped out during racing
 - Root cause: ultrasonic sensor was pinged every 5ms in a 10ms loop — hardware needs ~30ms between pings

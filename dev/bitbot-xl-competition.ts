@@ -52,6 +52,10 @@ const SONAR_STAGGER_MAX_MS = 9
 // HC-SR04-style sonar needs ~30ms between pings; faster polling causes false "disconnects".
 const SONAR_PING_GAP_MS = 32
 const SONAR_MIN_PING_INTERVAL_MS = 32
+// Readings below this are usually floor echo when the bot tilts forward while driving.
+const SONAR_MIN_TRUST_CM = 8
+const SONAR_FLOOR_DROP_CM = 22
+const OBSTACLE_ARM_MS = 1500
 const SONAR_HIT_COUNT_NOISY = 3
 const SONAR_CLEAR_COUNT_NOISY = 4
 const SONAR_QUALITY_MIN_HIT = 55
@@ -153,6 +157,7 @@ let obstacleLatched = false
 let obstacleHitStreak = 0
 let obstacleClearStreak = 0
 let obstacleCount = 0
+let obstacleArmedMs = 0
 
 let gapRecoverStartMs = 0
 let searchStartMs = 0
@@ -475,7 +480,34 @@ function pingSonarRawCm(force: boolean): number {
     return bitbot.sonar(BBPingUnit.Centimeters)
 }
 
+function isSonarFloorGlitch(sample: number, reference: number): boolean {
+    if (sample <= 0) {
+        return true
+    }
+    if (sample < SONAR_MIN_TRUST_CM) {
+        return true
+    }
+    if (reference >= SONAR_MIN_TRUST_CM && sample < reference - SONAR_FLOOR_DROP_CM) {
+        return true
+    }
+    return false
+}
+
+function isObstacleArmed(): boolean {
+    return input.runningTime() >= obstacleArmedMs
+}
+
+function armObstacleDetection(): void {
+    obstacleArmedMs = input.runningTime() + OBSTACLE_ARM_MS
+    obstacleHitStreak = 0
+    obstacleClearStreak = 0
+    obstacleLatched = false
+}
+
 function acceptSonarSample(d: number): boolean {
+    if (isSonarFloorGlitch(d, lastSonarCm)) {
+        return false
+    }
     if (d > 0 && d <= SONAR_VALID_MAX_CM) {
         lastSonarCm = d
         pushSonarBuffer(d)
@@ -555,7 +587,7 @@ function readSonarBurstCm(): number {
         let d = pingSonarRawCm(true)
 
         if (d > 0 && d <= SONAR_VALID_MAX_CM) {
-            if (!sonarOutlier(d, ref)) {
+            if (!sonarOutlier(d, ref) && !isSonarFloorGlitch(d, ref)) {
                 if (valid == 0) {
                     s0 = d
                 } else if (valid == 1) {
@@ -576,7 +608,7 @@ function readSonarBurstCm(): number {
     if (valid == 0) {
         basic.pause(SONAR_MIN_PING_INTERVAL_MS)
         let fallback = pingSonarRawCm(true)
-        if (fallback > 0 && fallback <= SONAR_VALID_MAX_CM && !sonarOutlier(fallback, ref)) {
+        if (fallback > 0 && fallback <= SONAR_VALID_MAX_CM && !sonarOutlier(fallback, ref) && !isSonarFloorGlitch(fallback, ref)) {
             pushSonarBuffer(fallback)
             pushSonarTrend(fallback)
             lastSonarCm = fallback
@@ -1165,7 +1197,17 @@ function speedForCorrection(correction: number, base: number): number {
 
 // ---------------- SONAR ----------------
 function tryDetectObstacle(): boolean {
+    if (!isObstacleArmed()) {
+        obstacleHitStreak = 0
+        return false
+    }
+
     let distance = snapDistance
+    if (isSonarFloorGlitch(distance, lastSonarCm)) {
+        obstacleHitStreak = 0
+        return false
+    }
+
     let hitThreshold = OBSTACLE_ON_CM
 
     if (sonarApproaching() && sonarQuality >= 60) {

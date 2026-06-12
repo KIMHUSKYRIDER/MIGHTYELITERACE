@@ -2,7 +2,7 @@
 
 [![Build & Validate](https://github.com/KIMHUSKYRIDER/MIGHTYELITERACE/actions/workflows/build.yml/badge.svg)](https://github.com/KIMHUSKYRIDER/MIGHTYELITERACE/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-5.3.3-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.3.4-blue.svg)](CHANGELOG.md)
 [![Blocks](https://img.shields.io/badge/blocks-283-green.svg)](BLOCKS.md)
 [![MakeCode](https://img.shields.io/badge/MakeCode-micro%3Abit-purple.svg)](https://makecode.microbit.org/)
 [![BitBot](https://img.shields.io/badge/BitBot-Classic%20%7C%20XL%20%7C%20PRO-red.svg)](https://4tronix.co.uk/bitbot/)
